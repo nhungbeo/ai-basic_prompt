@@ -112,8 +112,11 @@ Quy tắc tạo prompt:
 **Prompt [số]:**
 [Mô tả chi tiết bằng tiếng Anh]
 
+**Mô tả tiếng Việt:**
+[Giải thích prompt bằng tiếng Việt để người dùng hiểu]
+
 **Negative Prompt:**
-[Những gì cần tránh]
+[Những gì cần tránh bằng tiếng Anh]
 
 ---`;
     }
@@ -265,20 +268,25 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
         sections.forEach((section, index) => {
             const lines = section.trim().split('\n');
             let promptText = '';
+            let vietnameseDescription = '';
             let negativePrompt = '';
-            let isNegative = false;
+            let currentSection = '';
             
             lines.forEach(line => {
                 line = line.trim();
                 if (line.startsWith('**Prompt')) {
-                    isNegative = false;
+                    currentSection = 'prompt';
+                } else if (line.startsWith('**Mô tả tiếng Việt')) {
+                    currentSection = 'vietnamese';
                 } else if (line.startsWith('**Negative Prompt')) {
-                    isNegative = true;
+                    currentSection = 'negative';
                 } else if (line && !line.startsWith('**')) {
-                    if (isNegative) {
-                        negativePrompt += line + ' ';
-                    } else {
+                    if (currentSection === 'prompt') {
                         promptText += line + ' ';
+                    } else if (currentSection === 'vietnamese') {
+                        vietnameseDescription += line + ' ';
+                    } else if (currentSection === 'negative') {
+                        negativePrompt += line + ' ';
                     }
                 }
             });
@@ -286,6 +294,7 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
             if (promptText.trim()) {
                 prompts.push({
                     prompt: promptText.trim(),
+                    vietnameseDescription: vietnameseDescription.trim(),
                     negativePrompt: negativePrompt.trim(),
                     index: index + 1
                 });
@@ -318,56 +327,113 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
                 <span class="prompt-style">${styleMap[config.artStyle]}</span>
             </div>
             
-            <div class="prompt-content">${promptData.prompt}</div>
+            ${promptData.vietnameseDescription ? `
+                <div class="vietnamese-description">
+                    <h4>📝 Mô tả tiếng Việt:</h4>
+                    <p>${promptData.vietnameseDescription}</p>
+                </div>
+            ` : ''}
+            
+            <div class="prompt-section">
+                <h4>🎨 Prompt (English):</h4>
+                <div class="prompt-content">${promptData.prompt}</div>
+            </div>
             
             ${promptData.negativePrompt ? `
-                <div class="prompt-content" style="border-color: #dc3545; background: #fff5f5;">
-                    <strong>Negative Prompt:</strong><br>
-                    ${promptData.negativePrompt}
+                <div class="prompt-section">
+                    <h4>🚫 Negative Prompt:</h4>
+                    <div class="prompt-content negative-prompt" style="border-color: #dc3545; background: #fff5f5;">
+                        ${promptData.negativePrompt}
+                    </div>
                 </div>
             ` : ''}
             
             <div class="prompt-meta">
-                <span>Ý tưởng gốc: "${originalIdea}"</span>
-                <span>Tỷ lệ: ${config.aspectRatio}</span>
+                <span>💡 Ý tưởng gốc: "${originalIdea}"</span>
+                <span>📐 Tỷ lệ: ${config.aspectRatio}</span>
+                <span>🎭 Phong cách: ${styleMap[config.artStyle]}</span>
             </div>
             
             <div class="prompt-actions">
-                <button class="copy-prompt-btn" onclick="window.promptApp.copyPrompt('${promptData.prompt.replace(/'/g, "\\'")}')">
+                <button class="copy-prompt-btn" data-prompt-index="${index}">
                     📋 Sao chép Prompt
                 </button>
-                <button class="use-prompt-btn" onclick="window.promptApp.usePrompt('${promptData.prompt.replace(/'/g, "\\'")}')">
-                    🎨 Sử dụng
+                ${promptData.negativePrompt ? `
+                    <button class="copy-negative-btn" data-prompt-index="${index}">
+                        🚫 Sao chép Negative
+                    </button>
+                ` : ''}
+                <button class="copy-all-btn" data-prompt-index="${index}">
+                    📄 Sao chép Tất cả
                 </button>
             </div>
         `;
         
         this.promptResults.appendChild(promptItem);
+        
+        // Add event listeners for this prompt item
+        const copyBtn = promptItem.querySelector('.copy-prompt-btn');
+        const copyNegativeBtn = promptItem.querySelector('.copy-negative-btn');
+        const copyAllBtn = promptItem.querySelector('.copy-all-btn');
+        
+        copyBtn.addEventListener('click', () => this.copyPrompt(promptData.prompt));
+        
+        if (copyNegativeBtn) {
+            copyNegativeBtn.addEventListener('click', () => this.copyPrompt(promptData.negativePrompt));
+        }
+        
+        copyAllBtn.addEventListener('click', () => this.copyAllPrompts(promptData));
     }
 
     async copyPrompt(promptText) {
         try {
-            await navigator.clipboard.writeText(promptText);
-            this.showSuccessMessage('Prompt đã được sao chép vào clipboard!');
+            if (!promptText || promptText.trim() === '') {
+                this.showError('Không có nội dung để sao chép.');
+                return;
+            }
+            
+            await navigator.clipboard.writeText(promptText.trim());
+            this.showSuccessMessage('Đã sao chép vào clipboard! 📋');
         } catch (error) {
-            this.showError('Không thể sao chép prompt. Vui lòng thử lại.');
+            console.error('Copy error:', error);
+            // Fallback method
+            this.fallbackCopy(promptText);
         }
     }
 
-    usePrompt(promptText) {
-        // Show a modal or new section with the prompt ready to use
-        this.showSuccessMessage('Prompt đã sẵn sàng! Bạn có thể sử dụng trong Stable Diffusion, Midjourney, hoặc DALL-E.');
-        
-        // Optionally, you could open a new window with popular AI art platforms
-        const platforms = [
-            { name: 'Stable Diffusion Web UI', url: 'https://github.com/AUTOMATIC1111/stable-diffusion-webui' },
-            { name: 'Midjourney', url: 'https://midjourney.com' },
-            { name: 'DALL-E', url: 'https://openai.com/dall-e-2' },
-            { name: 'Leonardo AI', url: 'https://leonardo.ai' }
-        ];
-        
-        console.log('Prompt to use:', promptText);
-        console.log('Recommended platforms:', platforms);
+    async copyAllPrompts(promptData) {
+        try {
+            let fullText = `Prompt:\n${promptData.prompt}`;
+            
+            if (promptData.negativePrompt) {
+                fullText += `\n\nNegative Prompt:\n${promptData.negativePrompt}`;
+            }
+            
+            await navigator.clipboard.writeText(fullText);
+            this.showSuccessMessage('Đã sao chép tất cả prompt vào clipboard! 📄');
+        } catch (error) {
+            console.error('Copy all error:', error);
+            this.fallbackCopy(fullText);
+        }
+    }
+
+    fallbackCopy(text) {
+        try {
+            // Create a temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            this.showSuccessMessage('Đã sao chép vào clipboard! 📋');
+        } catch (fallbackError) {
+            console.error('Fallback copy error:', fallbackError);
+            this.showError('Không thể sao chép. Vui lòng chọn và copy thủ công.');
+        }
     }
 
     showSuccessMessage(message) {
