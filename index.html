@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo Hình Ảnh từ Văn Bản - Gemini AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Tạo Mô Tả Hình Ảnh Chi Tiết</h1>
+            <p>Sử dụng Google Gemini AI miễn phí để tạo mô tả hình ảnh chi tiết cho AI Art</p>
+        </header>
+
+        <main>
+            <div class="input-section">
+                <div class="api-key-section">
+                    <label for="apiKey">API Key Gemini:</label>
+                    <input 
+                        type="password" 
+                        id="apiKey" 
+                        placeholder="Nhập API key của bạn..."
+                        autocomplete="off"
+                    >
+                    <small>Lấy API key tại <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                </div>
+
+                <div class="prompt-section">
+                    <label for="prompt">Ý tưởng hình ảnh của bạn:</label>
+                    <textarea 
+                        id="prompt" 
+                        placeholder="Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh..."
+                        rows="3"
+                    ></textarea>
+                </div>
+
+                <div class="style-section">
+                    <label for="artStyle">Phong cách nghệ thuật:</label>
+                    <select id="artStyle">
+                        <option value="realistic">Thực tế</option>
+                        <option value="anime">Anime/Manga</option>
+                        <option value="cartoon">Cartoon</option>
+                        <option value="oil-painting">Sơn dầu</option>
+                        <option value="watercolor">Màu nước</option>
+                        <option value="digital-art">Digital Art</option>
+                        <option value="fantasy">Fantasy</option>
+                        <option value="cyberpunk">Cyberpunk</option>
+                        <option value="minimalist">Tối giản</option>
+                        <option value="vintage">Vintage</option>
+                    </select>
+                </div>
+
+                <div class="config-section">
+                    <div class="config-row">
+                        <div class="config-item">
+                            <label for="detailLevel">Mức độ chi tiết:</label>
+                            <select id="detailLevel">
+                                <option value="basic">Cơ bản</option>
+                                <option value="detailed" selected>Chi tiết</option>
+                                <option value="very-detailed">Rất chi tiết</option>
+                                <option value="ultra-detailed">Siêu chi tiết</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="aspectRatio">Tỷ lệ khung hình:</label>
+                            <select id="aspectRatio">
+                                <option value="1:1">Vuông (1:1)</option>
+                                <option value="3:4">Dọc (3:4)</option>
+                                <option value="4:3">Ngang (4:3)</option>
+                                <option value="9:16">Dọc dài (9:16)</option>
+                                <option value="16:9">Ngang rộng (16:9)</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="numberOfPrompts">Số lượng mô tả:</label>
+                            <select id="numberOfPrompts">
+                                <option value="1">1 mô tả</option>
+                                <option value="2">2 mô tả</option>
+                                <option value="3" selected>3 mô tả</option>
+                                <option value="5">5 mô tả</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="advanced-config">
+                        <details>
+                            <summary>Cài đặt nâng cao</summary>
+                            <div class="advanced-options">
+                                <div class="config-item">
+                                    <label for="negativePrompt">Mô tả loại trừ:</label>
+                                    <input 
+                                        type="text" 
+                                        id="negativePrompt" 
+                                        placeholder="Những gì không muốn xuất hiện trong ảnh..."
+                                    >
+                                </div>
+                                
+                                <div class="config-item">
+                                    <label for="guidanceScale">Độ tuân thủ mô tả (1-20):</label>
+                                    <input 
+                                        type="range" 
+                                        id="guidanceScale" 
+                                        min="1" 
+                                        max="20" 
+                                        value="7" 
+                                        step="0.5"
+                                    >
+                                    <span id="guidanceValue">7</span>
+                                </div>
+
+                                <div class="config-item">
+                                    <label for="seed">Seed (để tái tạo):</label>
+                                    <input 
+                                        type="number" 
+                                        id="seed" 
+                                        placeholder="Để trống cho ngẫu nhiên"
+                                    >
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-btn">
+                    <span class="btn-text">✨ Tạo Mô Tả Chi Tiết</span>
+                    <span class="btn-loading" style="display: none;">
+                        <span class="spinner"></span>
+                        Đang tạo mô tả...
+                    </span>
+                </button>
+            </div>
+
+            <div class="output-section">
+                <div id="errorMessage" class="error-message" style="display: none;"></div>
+                <div id="loadingMessage" class="loading-message" style="display: none;">
+                    <div class="loading-animation">
+                        <div class="loading-spinner"></div>
+                        <p>Đang tạo mô tả chi tiết... Vui lòng đợi</p>
+                    </div>
+                </div>
+                <div id="promptResults" class="prompt-results"></div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Được phát triển với ❤️ sử dụng Google Gemini API</p>
+        </footer>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

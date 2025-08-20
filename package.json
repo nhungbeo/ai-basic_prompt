@@ -1,0 +1,18 @@
+{
+  "name": "text-to-image-generator",
+  "version": "1.0.0",
+  "description": "Ứng dụng tạo hình ảnh từ văn bản sử dụng Google Gemini API",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^0.3.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  },
+  "type": "module"
+}

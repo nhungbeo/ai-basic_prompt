@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "C:\\Users\\TRANG\\Documents\\tool\\2025\\Prompt\\ai-basic_prompt\\logs\\.0024d2df3bde80864ed9ea7e99f6ae1da7066933-audit.json",
+    "files": [
+        {
+            "date": 1755711425422,
+            "name": "C:\\Users\\TRANG\\Documents\\tool\\2025\\Prompt\\ai-basic_prompt\\logs\\mcp-puppeteer-2025-08-21.log",
+            "hash": "02bcbb1d751d2274b7694b422a812d970ad4994dd216679025ef54aaa75aa83d"
+        }
+    ],
+    "hashType": "sha256"
+}
