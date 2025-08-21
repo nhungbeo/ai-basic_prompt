@@ -13,302 +13,444 @@
             <p>Sử dụng Google Gemini AI miễn phí để tạo mô tả chi tiết cho AI Art và Video</p>
         </header>
 
-        <main>
+        <!-- Navigation Tabs -->
+        <nav class="main-navigation">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="image">🖼️ Tạo Ảnh</button>
+                <button class="nav-tab" data-tab="video">🎬 Tạo Video</button>
+            </div>
+        </nav>
+
+        <!-- Global API Key Section -->
+        <div class="api-key-global" id="apiKeyGlobal">
+            <div class="api-key-input">
+                <input 
+                    type="password" 
+                    id="apiKey" 
+                    placeholder="Nhập API key Gemini của bạn..."
+                    autocomplete="off"
+                >
+                <button class="api-key-save" id="apiKeySave">💾 Lưu</button>
+            </div>
+            <small>Lấy API key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+        </div>
+
+        <!-- Image Generator Tab -->
+        <main class="tab-content active" id="imageTab">
+            <div class="generator-header">
+                <h2>🎨 Tạo Mô Tả Chi Tiết Cho Hình Ảnh</h2>
+                <p>Sử dụng AI để tạo prompt chuyên nghiệp cho Stable Diffusion, Midjourney, DALL-E</p>
+            </div>
+
             <div class="input-section">
-                <div class="api-key-section">
-                    <label for="apiKey">API Key Gemini:</label>
-                    <input 
-                        type="password" 
-                        id="apiKey" 
-                        placeholder="Nhập API key của bạn..."
-                        autocomplete="off"
-                    >
-                    <small>Lấy API key tại <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
-                </div>
 
-                <div class="content-type-section">
-                    <label for="contentType">Loại nội dung:</label>
-                    <div class="content-type-tabs">
-                        <button type="button" class="tab-btn active" data-type="image">🖼️ Hình Ảnh</button>
-                        <button type="button" class="tab-btn" data-type="video">🎬 Video</button>
-                    </div>
-                </div>
-
-                <!-- Video Template Cards -->
-                <div class="video-templates" id="videoTemplates" style="display: none;">
-                    <label>Mẫu Video AI - Chọn để thêm vào mô tả:</label>
-                    
-                    <div class="template-categories">
-                        <div class="template-category">
-                            <h3>📹 Chuyển động máy quay</h3>
-                            <div class="template-cards">
-                                <div class="template-card" data-template="Static shot, locked camera">
-                                    <h4>📸 Cảnh Tĩnh</h4>
-                                    <p>Máy quay cố định, không chuyển động</p>
-                                </div>
-                                <div class="template-card" data-template="Dolly in, camera slowly zooms in">
-                                    <h4>🔍 Tiến Máy Quay</h4>
-                                    <p>Máy quay lại gần chủ thể</p>
-                                </div>
-                                <div class="template-card" data-template="Camera pulls back, dolly out">
-                                    <h4>📤 Lùi Máy Quay</h4>
-                                    <p>Máy quay ra xa để lộ bối cảnh rộng</p>
-                                </div>
-                                <div class="template-card" data-template="Camera pans to follow, tracking shot">
-                                    <h4>↔️ Lia Máy Quay</h4>
-                                    <p>Máy quay xoay ngang theo dõi</p>
-                                </div>
-                                <div class="template-card" data-template="Camera tilts upwards to reveal">
-                                    <h4>⬆️ Nghiêng Máy Quay</h4>
-                                    <p>Máy quay xoay dọc lên/xuống</p>
-                                </div>
-                                <div class="template-card" data-template="Crane shot, camera moves overhead and tilts downwards">
-                                    <h4>🏗️ Cần Cẩu</h4>
-                                    <p>Góc nhìn từ trên cao, bao quát</p>
-                                </div>
-                                <div class="template-card" data-template="Handheld camera">
-                                    <h4>✋ Máy Quay Cầm Tay</h4>
-                                    <p>Chuyển động tự nhiên, hơi rung</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-category">
-                            <h3>🎭 Chuyển động của chủ thể</h3>
-                            <div class="template-cards">
-                                <div class="template-card" data-template="character walking slowly">
-                                    <h4>🚶 Đi Bộ Chậm</h4>
-                                    <p>Nhân vật di chuyển chậm rãi</p>
-                                </div>
-                                <div class="template-card" data-template="character running quickly">
-                                    <h4>🏃 Chạy Nhanh</h4>
-                                    <p>Nhân vật chạy với tốc độ cao</p>
-                                </div>
-                                <div class="template-card" data-template="character sitting still, minimal movement">
-                                    <h4>🪑 Ngồi Yên</h4>
-                                    <p>Nhân vật ngồi tĩnh, ít chuyển động</p>
-                                </div>
-                                <div class="template-card" data-template="character dancing gracefully">
-                                    <h4>💃 Nhảy Múa</h4>
-                                    <p>Chuyển động uyển chuyển, nghệ thuật</p>
-                                </div>
-                                <div class="template-card" data-template="character fighting, action scene">
-                                    <h4>⚔️ Hành Động Chiến Đấu</h4>
-                                    <p>Cảnh chiến đấu, hành động mạnh</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="template-category">
-                            <h3>🌍 Bối cảnh/Hành động nền</h3>
-                            <div class="template-cards">
-                                <div class="template-card" data-template="in a burning palace, dramatic fire background">
-                                    <h4>🔥 Cung Điện Cháy</h4>
-                                    <p>Bối cảnh lửa cháy kịch tính</p>
-                                </div>
-                                <div class="template-card" data-template="on a chaotic battlefield with smoke">
-                                    <h4>⚔️ Chiến Trường</h4>
-                                    <p>Môi trường chiến đấu hỗn loạn</p>
-                                </div>
-                                <div class="template-card" data-template="in a futuristic city with neon lights">
-                                    <h4>🌆 Thành Phố Tương Lai</h4>
-                                    <p>Bối cảnh sci-fi với đèn neon</p>
-                                </div>
-                                <div class="template-card" data-template="in a peaceful forest with sunlight filtering through trees">
-                                    <h4>🌲 Rừng Yên Bình</h4>
-                                    <p>Môi trường tự nhiên thanh bình</p>
-                                </div>
-                                <div class="template-card" data-template="with dramatic shadows and lighting">
-                                    <h4>🌑 Ánh Sáng Kịch Tính</h4>
-                                    <p>Hiệu ứng ánh sáng và bóng tối</p>
-                                </div>
-                                <div class="template-card" data-template="with steam and particles rising in the air">
-                                    <h4>💨 Hơi Nước & Khói</h4>
-                                    <p>Hiệu ứng hơi nước, khói bụi</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="prompt-section">
-                    <label for="prompt" id="promptLabel">Ý tưởng hình ảnh của bạn:</label>
+                <div class="prompt-section main-prompt">
+                    <label for="imagePrompt" class="prompt-label">✨ Mô tả ý tưởng hình ảnh của bạn</label>
                     <textarea 
-                        id="prompt" 
-                        placeholder="Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh..."
-                        rows="3"
+                        id="imagePrompt" 
+                        class="prompt-input"
+                        placeholder="Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh dưới ánh nắng mặt trời..."
+                        rows="4"
                     ></textarea>
                 </div>
 
-                <div class="style-section">
-                    <label for="artStyle">Phong cách:</label>
-                    <select id="artStyle">
-                        <optgroup label="📷 Realistic & Photography">
-                            <option value="realistic">📷 Realistic/Photo</option>
-                            <option value="photography">📸 Professional Photography</option>
-                            <option value="cinematic">🎬 Cinematic</option>
-                        </optgroup>
-                        <optgroup label="🎨 Art Styles">
-                            <option value="anime">🇯🇵 Anime/Manga</option>
-                            <option value="cartoon">🎭 Cartoon/Animation</option>
-                            <option value="oil-painting">🖌️ Oil Painting</option>
-                            <option value="watercolor">🎨 Watercolor</option>
-                            <option value="digital-art">💻 Digital Art</option>
-                        </optgroup>
-                        <optgroup label="🌟 Special Themes">
-                            <option value="fantasy">🐲 Fantasy Art</option>
-                            <option value="cyberpunk">🌆 Cyberpunk</option>
-                            <option value="vintage">📻 Vintage/Retro</option>
-                            <option value="minimalist">⚪ Minimalist</option>
-                        </optgroup>
-                        <optgroup label="💼 Commercial">
-                            <option value="commercial">💼 Commercial/Marketing</option>
-                            <option value="technical">⚙️ Technical/Professional</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <div class="config-section">
-                    <div class="config-row">
-                        <div class="config-item">
-                            <label for="detailLevel">Mức độ chi tiết:</label>
-                            <select id="detailLevel">
-                                <option value="basic">Cơ bản</option>
-                                <option value="detailed" selected>Chi tiết</option>
-                                <option value="very-detailed">Rất chi tiết</option>
-                                <option value="ultra-detailed">Siêu chi tiết</option>
-                            </select>
+                <div class="style-selection">
+                    <label class="style-label">🎨 Chọn phong cách</label>
+                    <div class="style-grid">
+                        <div class="style-option" data-style="realistic">
+                            <div class="style-icon">📷</div>
+                            <span>Thực tế</span>
                         </div>
-
-                        <div class="config-item">
-                            <label for="aspectRatio">Tỷ lệ khung hình:</label>
-                            <select id="aspectRatio">
-                                <option value="1:1">Vuông (1:1)</option>
-                                <option value="3:4">Dọc (3:4)</option>
-                                <option value="4:3">Ngang (4:3)</option>
-                                <option value="9:16">Dọc dài (9:16)</option>
-                                <option value="16:9">Ngang rộng (16:9)</option>
-                            </select>
+                        <div class="style-option" data-style="anime">
+                            <div class="style-icon">🇯🇵</div>
+                            <span>Anime</span>
                         </div>
-
-                        <div class="config-item">
-                            <label for="numberOfPrompts">Số lượng mô tả:</label>
-                            <select id="numberOfPrompts">
-                                <option value="1">1 mô tả</option>
-                                <option value="2">2 mô tả</option>
-                                <option value="3" selected>3 mô tả</option>
-                                <option value="5">5 mô tả</option>
-                            </select>
+                        <div class="style-option" data-style="digital-art">
+                            <div class="style-icon">💻</div>
+                            <span>Digital Art</span>
+                        </div>
+                        <div class="style-option" data-style="fantasy">
+                            <div class="style-icon">🐲</div>
+                            <span>Fantasy</span>
+                        </div>
+                        <div class="style-option" data-style="cinematic">
+                            <div class="style-icon">🎬</div>
+                            <span>Cinematic</span>
+                        </div>
+                        <div class="style-option" data-style="minimalist">
+                            <div class="style-icon">⚪</div>
+                            <span>Tối giản</span>
                         </div>
                     </div>
-
-                    <div class="advanced-config">
-                        <details>
-                            <summary>Cài đặt nâng cao</summary>
-                            <div class="advanced-options">
-                                <div class="config-item">
-                                    <label for="modelSelect">Model AI:</label>
-                                    <select id="modelSelect">
-                                        <optgroup label="🚀 Gemini 2.5 (Mới nhất)">
-                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Cân bằng tốt)</option>
-                                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Siêu nhanh)</option>
-                                        </optgroup>
-                                        <optgroup label="⚡ Gemini 2.0">
-                                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Thử nghiệm)</option>
-                                        </optgroup>
-                                        <optgroup label="📚 Gemini 1.5">
-                                            <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Nhanh)</option>
-                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chất lượng cao)</option>
-                                        </optgroup>
-                                        <optgroup label="🔧 Gemini 1.0">
-                                            <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
-                                        </optgroup>
-                                    </select>
-                                </div>
-
-                                <div class="config-item">
-                                    <label for="customSystemPrompt">System Prompt tùy chỉnh:</label>
-                                    <textarea 
-                                        id="customSystemPrompt" 
-                                        rows="4"
-                                        placeholder="Nhập system prompt tùy chỉnh hoặc để trống để sử dụng mặc định..."
-                                    ></textarea>
-                                    <div class="prompt-controls">
-                                        <button type="button" id="showDefaultPromptBtn" class="control-btn">📝 Xem Prompt Mặc Định</button>
-                                        <button type="button" id="useDefaultPromptBtn" class="control-btn">↩️ Sử Dụng Mặc Định</button>
-                                    </div>
-                                    <small>System prompt sẽ điều khiển cách AI tạo mô tả. Để trống để sử dụng prompt mặc định.</small>
-                                </div>
-
-                                <div class="config-item">
-                                    <div class="default-prompt-viewer" id="defaultPromptViewer" style="display: none;">
-                                        <label>Prompt mặc định hiện tại:</label>
-                                        <div class="default-prompt-content" id="defaultPromptContent"></div>
-                                        <button type="button" id="editDefaultPromptBtn" class="control-btn">✏️ Chỉnh Sửa Prompt Mặc Định</button>
-                                    </div>
-                                </div>
-
-                                <div class="config-item">
-                                    <div class="settings-controls">
-                                        <button type="button" id="resetSettingsBtn" class="reset-btn">🔄 Reset Tất Cả Cài Đặt</button>
-                                    </div>
-                                </div>
-
-                                <div class="config-item">
-                                    <label for="negativePrompt">Mô tả loại trừ:</label>
-                                    <input 
-                                        type="text" 
-                                        id="negativePrompt" 
-                                        placeholder="Những gì không muốn xuất hiện trong ảnh..."
-                                    >
-                                </div>
-                                
-                                <div class="config-item">
-                                    <label for="guidanceScale">Độ tuân thủ mô tả (1-20):</label>
-                                    <input 
-                                        type="range" 
-                                        id="guidanceScale" 
-                                        min="1" 
-                                        max="20" 
-                                        value="7" 
-                                        step="0.5"
-                                    >
-                                    <span id="guidanceValue">7</span>
-                                </div>
-
-                                <div class="config-item">
-                                    <label for="seed">Seed (để tái tạo):</label>
-                                    <input 
-                                        type="number" 
-                                        id="seed" 
-                                        placeholder="Để trống cho ngẫu nhiên"
-                                    >
-                                </div>
-                            </div>
-                        </details>
-                    </div>
+                    <input type="hidden" id="artStyle" value="realistic">
                 </div>
 
-                <button id="generateBtn" class="generate-btn">
-                    <span class="btn-text">✨ Tạo Mô Tả Chi Tiết</span>
+                <button id="generateImageBtn" class="generate-btn primary">
+                    <span class="btn-icon">✨</span>
+                    <span class="btn-text">Tạo Mô Tả Hình Ảnh</span>
                     <span class="btn-loading" style="display: none;">
                         <span class="spinner"></span>
-                        Đang tạo mô tả...
+                        Đang tạo...
                     </span>
                 </button>
+
+                <!-- Advanced Settings for Images -->
+                <details class="advanced-settings">
+                    <summary>⚙️ Cài đặt nâng cao</summary>
+                    <div class="advanced-content">
+
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="detailLevel">Mức độ chi tiết:</label>
+                                <select id="detailLevel">
+                                    <option value="basic">Cơ bản</option>
+                                    <option value="detailed" selected>Chi tiết</option>
+                                    <option value="very-detailed">Rất chi tiết</option>
+                                    <option value="ultra-detailed">Siêu chi tiết</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="aspectRatio">Tỷ lệ khung hình:</label>
+                                <select id="aspectRatio">
+                                    <option value="1:1">Vuông (1:1)</option>
+                                    <option value="3:4">Dọc (3:4)</option>
+                                    <option value="4:3">Ngang (4:3)</option>
+                                    <option value="9:16">Dọc dài (9:16)</option>
+                                    <option value="16:9">Ngang rộng (16:9)</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="numberOfPrompts">Số lượng mô tả:</label>
+                                <select id="numberOfPrompts">
+                                    <option value="1">1 mô tả</option>
+                                    <option value="2">2 mô tả</option>
+                                    <option value="3" selected>3 mô tả</option>
+                                    <option value="5">5 mô tả</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="advancedApiKey">API Key Gemini:</label>
+                            <div class="api-key-advanced">
+                                <input 
+                                    type="password" 
+                                    id="advancedApiKey" 
+                                    placeholder="Nhập hoặc thay đổi API key..."
+                                    autocomplete="off"
+                                >
+                                <div class="api-key-controls">
+                                    <button type="button" id="showApiKey" class="control-btn">👁️ Hiện</button>
+                                    <button type="button" id="saveAdvancedApiKey" class="control-btn">💾 Lưu</button>
+                                    <button type="button" id="clearApiKey" class="control-btn danger">🗑️ Xóa</button>
+                                </div>
+                            </div>
+                            <small>Lấy API key miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="modelSelect">Model AI:</label>
+                            <select id="modelSelect">
+                                <optgroup label="🚀 Gemini 2.5 (Mới nhất)">
+                                    <option value="gemini-2.5-flash">Gemini 2.5 Flash (Cân bằng tốt)</option>
+                                    <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Siêu nhanh)</option>
+                                </optgroup>
+                                <optgroup label="⚡ Gemini 2.0">
+                                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Thử nghiệm)</option>
+                                </optgroup>
+                                <optgroup label="📚 Gemini 1.5">
+                                    <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Nhanh)</option>
+                                    <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chất lượng cao)</option>
+                                </optgroup>
+                                <optgroup label="🔧 Gemini 1.0">
+                                    <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="negativePrompt">Mô tả loại trừ:</label>
+                            <input 
+                                type="text" 
+                                id="negativePrompt" 
+                                placeholder="Những gì không muốn xuất hiện trong ảnh..."
+                            >
+                        </div>
+                        
+                        <div class="config-item">
+                            <label for="guidanceScale">Độ tuân thủ mô tả (1-20):</label>
+                            <div class="range-input">
+                                <input 
+                                    type="range" 
+                                    id="guidanceScale" 
+                                    min="1" 
+                                    max="20" 
+                                    value="7" 
+                                    step="0.5"
+                                >
+                                <span id="guidanceValue">7</span>
+                            </div>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="seed">Seed (để tái tạo):</label>
+                            <input 
+                                type="number" 
+                                id="seed" 
+                                placeholder="Để trống cho ngẫu nhiên"
+                            >
+                        </div>
+
+                        <div class="config-item">
+                            <label for="customSystemPrompt">System Prompt tùy chỉnh:</label>
+                            <textarea 
+                                id="customSystemPrompt" 
+                                rows="4"
+                                placeholder="Nhập system prompt tùy chỉnh hoặc để trống để sử dụng mặc định..."
+                            ></textarea>
+                            <div class="prompt-controls">
+                                <button type="button" id="showDefaultPromptBtn" class="control-btn">📝 Xem Prompt Mặc Định</button>
+                                <button type="button" id="useDefaultPromptBtn" class="control-btn">↩️ Sử Dụng Mặc Định</button>
+                            </div>
+                        </div>
+
+                        <div class="config-item">
+                            <div class="default-prompt-viewer" id="defaultPromptViewer" style="display: none;">
+                                <label>Prompt mặc định hiện tại:</label>
+                                <div class="default-prompt-content" id="defaultPromptContent"></div>
+                                <button type="button" id="editDefaultPromptBtn" class="control-btn">✏️ Chỉnh Sửa Prompt Mặc Định</button>
+                            </div>
+                        </div>
+
+                        <div class="config-item">
+                            <div class="settings-controls">
+                                <button type="button" id="resetSettingsBtn" class="reset-btn">🔄 Reset Tất Cả Cài Đặt</button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
             </div>
 
             <div class="output-section">
-                <div id="errorMessage" class="error-message" style="display: none;"></div>
-                <div id="loadingMessage" class="loading-message" style="display: none;">
-                    <div class="loading-animation">
-                        <div class="loading-spinner"></div>
-                        <p>Đang tạo mô tả chi tiết... Vui lòng đợi</p>
-                    </div>
-                </div>
-                <div id="promptResults" class="prompt-results"></div>
+                <div id="imageResults" class="results-container"></div>
             </div>
         </main>
+
+        <!-- Video Generator Tab -->
+        <main class="tab-content" id="videoTab">
+            <div class="generator-header">
+                <h2>🎬 Tạo Mô Tả Chi Tiết Cho Video</h2>
+                <p>Sử dụng AI để tạo prompt chuyên nghiệp cho Runway, Pika, Sora và các công cụ AI video</p>
+            </div>
+
+            <div class="input-section">
+                <div class="prompt-section main-prompt">
+                    <label for="videoPrompt" class="prompt-label">🎥 Mô tả ý tưởng video của bạn</label>
+                    <textarea 
+                        id="videoPrompt" 
+                        class="prompt-input"
+                        placeholder="Ví dụ: Một con mèo đang chạy qua cánh đồng hoa, camera theo chuyển động từ xa đến gần..."
+                        rows="4"
+                    ></textarea>
+                </div>
+
+                <!-- Video Template Quick Select -->
+                <div class="template-quick-select">
+                    <label class="template-label">⚡ Mẫu nhanh - Chọn để thêm vào mô tả</label>
+                    <div class="template-grid-compact">
+                        <div class="template-chip" data-template="Static shot, locked camera">📸 Cảnh Tĩnh</div>
+                        <div class="template-chip" data-template="Dolly in, camera slowly zooms in">🔍 Zoom In</div>
+                        <div class="template-chip" data-template="Camera pulls back, dolly out">📤 Zoom Out</div>
+                        <div class="template-chip" data-template="Camera pans to follow, tracking shot">↔️ Theo Dõi</div>
+                        <div class="template-chip" data-template="character walking slowly">🚶 Đi Bộ</div>
+                        <div class="template-chip" data-template="character running quickly">🏃 Chạy</div>
+                        <div class="template-chip" data-template="cinematic lighting, dramatic shadows">🌑 Ánh Sáng</div>
+                        <div class="template-chip" data-template="smooth camera movement">📹 Mượt</div>
+                    </div>
+                </div>
+
+                <div class="style-selection">
+                    <label class="style-label">🎬 Chọn phong cách video</label>
+                    <div class="style-grid">
+                        <div class="style-option" data-style="cinematic">
+                            <div class="style-icon">🎬</div>
+                            <span>Cinematic</span>
+                        </div>
+                        <div class="style-option" data-style="documentary">
+                            <div class="style-icon">📹</div>
+                            <span>Documentary</span>
+                        </div>
+                        <div class="style-option" data-style="anime">
+                            <div class="style-icon">🇯🇵</div>
+                            <span>Anime</span>
+                        </div>
+                        <div class="style-option" data-style="commercial">
+                            <div class="style-icon">💼</div>
+                            <span>Commercial</span>
+                        </div>
+                        <div class="style-option" data-style="artistic">
+                            <div class="style-icon">🎨</div>
+                            <span>Artistic</span>
+                        </div>
+                        <div class="style-option" data-style="realistic">
+                            <div class="style-icon">📷</div>
+                            <span>Realistic</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="videoStyle" value="cinematic">
+                </div>
+
+                <button id="generateVideoBtn" class="generate-btn primary">
+                    <span class="btn-icon">🎬</span>
+                    <span class="btn-text">Tạo Mô Tả Video</span>
+                    <span class="btn-loading" style="display: none;">
+                        <span class="spinner"></span>
+                        Đang tạo...
+                    </span>
+                </button>
+
+                <!-- Advanced Settings for Videos -->
+                <details class="advanced-settings">
+                    <summary>⚙️ Cài đặt nâng cao cho video</summary>
+                    <div class="advanced-content">
+                        <div class="config-grid">
+                            <div class="config-item">
+                                <label for="videoAdvancedApiKey">API Key Gemini:</label>
+                                <div class="api-key-advanced">
+                                    <input 
+                                        type="password" 
+                                        id="videoAdvancedApiKey" 
+                                        placeholder="Nhập hoặc thay đổi API key..."
+                                        autocomplete="off"
+                                    >
+                                    <div class="api-key-controls">
+                                        <button type="button" id="showVideoApiKey" class="control-btn">👁️ Hiện</button>
+                                        <button type="button" id="saveVideoApiKey" class="control-btn">💾 Lưu</button>
+                                        <button type="button" id="clearVideoApiKey" class="control-btn danger">🗑️ Xóa</button>
+                                    </div>
+                                </div>
+                                <small>API key sẽ được chia sẻ giữa cả Image và Video</small>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="videoDetailLevel">Mức độ chi tiết:</label>
+                                <select id="videoDetailLevel">
+                                    <option value="basic">Cơ bản</option>
+                                    <option value="detailed" selected>Chi tiết</option>
+                                    <option value="very-detailed">Rất chi tiết</option>
+                                    <option value="professional">Chuyên nghiệp</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="videoAspectRatio">Tỷ lệ khung hình:</label>
+                                <select id="videoAspectRatio">
+                                    <option value="16:9">Ngang rộng (16:9)</option>
+                                    <option value="9:16">Dọc dài (9:16)</option>
+                                    <option value="1:1">Vuông (1:1)</option>
+                                    <option value="4:3">Ngang (4:3)</option>
+                                    <option value="21:9">Ultra wide (21:9)</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="videoLength">Độ dài video:</label>
+                                <select id="videoLength">
+                                    <option value="short">Ngắn (1-3s)</option>
+                                    <option value="medium" selected>Trung bình (3-10s)</option>
+                                    <option value="long">Dài (10-30s)</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="numberOfVideoPrompts">Số lượng mô tả:</label>
+                                <select id="numberOfVideoPrompts">
+                                    <option value="1">1 mô tả</option>
+                                    <option value="2">2 mô tả</option>
+                                    <option value="3" selected>3 mô tả</option>
+                                    <option value="5">5 mô tả</option>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="videoModelSelect">Model AI cho Video:</label>
+                                <select id="videoModelSelect">
+                                    <optgroup label="🚀 Gemini 2.5 (Mới nhất)">
+                                        <option value="gemini-2.5-flash">Gemini 2.5 Flash (Cân bằng tốt)</option>
+                                        <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Siêu nhanh)</option>
+                                    </optgroup>
+                                    <optgroup label="⚡ Gemini 2.0">
+                                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Thử nghiệm)</option>
+                                    </optgroup>
+                                    <optgroup label="📚 Gemini 1.5">
+                                        <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Nhanh)</option>
+                                        <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chất lượng cao)</option>
+                                    </optgroup>
+                                    <optgroup label="🔧 Gemini 1.0">
+                                        <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+
+                            <div class="config-item">
+                                <label for="videoCustomSystemPrompt">System Prompt tùy chỉnh cho Video:</label>
+                                <textarea 
+                                    id="videoCustomSystemPrompt" 
+                                    rows="4"
+                                    placeholder="Nhập system prompt tùy chỉnh hoặc để trống để sử dụng mặc định..."
+                                ></textarea>
+                                <div class="prompt-controls">
+                                    <button type="button" id="showVideoDefaultPromptBtn" class="control-btn">📝 Xem Prompt Mặc Định</button>
+                                    <button type="button" id="useVideoDefaultPromptBtn" class="control-btn">↩️ Sử Dụng Mặc Định</button>
+                                    <button type="button" id="editVideoDefaultPromptBtn" class="control-btn">✏️ Chỉnh Sửa Prompt Mặc Định</button>
+                                </div>
+                            </div>
+
+                            <div class="config-item">
+                                <div class="default-prompt-viewer" id="videoDefaultPromptViewer" style="display: none;">
+                                    <label>Video prompt mặc định hiện tại:</label>
+                                    <div class="default-prompt-content" id="videoDefaultPromptContent"></div>
+                                    <button type="button" id="editVideoPromptBtn" class="control-btn">✏️ Chỉnh Sửa Video Prompt Mặc Định</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <div class="output-section">
+                <div id="videoResults" class="results-container"></div>
+            </div>
+        </main>
+
+        <!-- Global Components -->
+        <div id="statusContainer" class="status-container">
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+            <div id="loadingMessage" class="loading-message" style="display: none;">
+                <div class="loading-animation">
+                    <div class="loading-spinner"></div>
+                    <p>Đang tạo mô tả chi tiết... Vui lòng đợi</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Sidebar -->
+        <aside class="history-sidebar" id="historySidebar">
+            <div class="history-header">
+                <h3>📚 Lịch sử</h3>
+                <button class="history-toggle" id="historyToggle">✕</button>
+            </div>
+            <div class="history-content" id="historyContent">
+                <p class="history-empty">Chưa có lịch sử nào</p>
+            </div>
+        </aside>
+
+        <!-- History Toggle Button -->
+        <button class="history-btn" id="historyBtn" title="Xem lịch sử">
+            📚
+        </button>
 
         <footer>
             <p>Được phát triển với ❤️ sử dụng Google Gemini API</p>

@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "mcp__sequential-thinking-global__sequentialthinking",
+      "Bash(npm install)"
     ],
     "deny": [],
     "ask": []

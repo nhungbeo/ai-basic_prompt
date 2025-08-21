@@ -1,19 +1,258 @@
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// UI State Manager for tab switching and state management
+class UIStateManager {
+    constructor() {
+        this.currentTab = 'image';
+        this.setupTabs();
+    }
+
+    setupTabs() {
+        this.navTabs = document.querySelectorAll('.nav-tab');
+        this.tabContents = document.querySelectorAll('.tab-content');
+        this.apiKeyGlobal = document.getElementById('apiKeyGlobal');
+        
+        // Bind tab click events
+        this.navTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                const tabType = e.target.dataset.tab;
+                this.switchTab(tabType);
+            });
+        });
+
+        // Initially hide API key if already saved
+        this.checkApiKeyVisibility();
+    }
+
+    switchTab(tabType) {
+        if (tabType === this.currentTab) return;
+        
+        this.currentTab = tabType;
+        
+        // Update nav tabs
+        this.navTabs.forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabType);
+        });
+        
+        // Update tab contents with animation
+        this.tabContents.forEach(content => {
+            const isActive = content.id === `${tabType}Tab`;
+            if (isActive) {
+                content.classList.add('active');
+                content.style.display = 'block';
+            } else {
+                content.classList.remove('active');
+                // Delay hiding to allow animation
+                setTimeout(() => {
+                    if (!content.classList.contains('active')) {
+                        content.style.display = 'none';
+                    }
+                }, 100);
+            }
+        });
+    }
+
+    checkApiKeyVisibility() {
+        const savedApiKey = localStorage.getItem('gemini_api_key');
+        if (savedApiKey && savedApiKey.trim()) {
+            this.apiKeyGlobal.style.display = 'none';
+        }
+    }
+
+    showApiKeySection() {
+        this.apiKeyGlobal.style.display = 'block';
+    }
+
+    hideApiKeySection() {
+        this.apiKeyGlobal.style.display = 'none';
+    }
+}
+
+// History Manager for localStorage integration
+class HistoryManager {
+    constructor() {
+        this.maxHistoryItems = 50;
+        this.setupHistoryUI();
+    }
+
+    setupHistoryUI() {
+        this.historyBtn = document.getElementById('historyBtn');
+        this.historySidebar = document.getElementById('historySidebar');
+        this.historyToggle = document.getElementById('historyToggle');
+        this.historyContent = document.getElementById('historyContent');
+        
+        // Bind events
+        this.historyBtn.addEventListener('click', () => this.showHistory());
+        this.historyToggle.addEventListener('click', () => this.hideHistory());
+        
+        // Load and display history
+        this.loadHistory();
+    }
+
+    showHistory() {
+        this.historySidebar.classList.add('active');
+    }
+
+    hideHistory() {
+        this.historySidebar.classList.remove('active');
+    }
+
+    addToHistory(type, prompt, results) {
+        const historyItem = {
+            id: Date.now(),
+            type: type, // 'image' or 'video'
+            prompt: prompt,
+            results: results,
+            timestamp: new Date().toISOString()
+        };
+
+        let history = this.getHistory();
+        history.unshift(historyItem);
+        
+        // Keep only maxHistoryItems
+        if (history.length > this.maxHistoryItems) {
+            history = history.slice(0, this.maxHistoryItems);
+        }
+        
+        localStorage.setItem('prompt_history', JSON.stringify(history));
+        this.renderHistory();
+    }
+
+    getHistory() {
+        try {
+            const history = localStorage.getItem('prompt_history');
+            return history ? JSON.parse(history) : [];
+        } catch (error) {
+            console.error('Error loading history:', error);
+            return [];
+        }
+    }
+
+    loadHistory() {
+        this.renderHistory();
+    }
+
+    renderHistory() {
+        const history = this.getHistory();
+        
+        if (history.length === 0) {
+            this.historyContent.innerHTML = '<p class="history-empty">Chưa có lịch sử nào</p>';
+            return;
+        }
+
+        const historyHTML = history.map(item => {
+            const date = new Date(item.timestamp).toLocaleDateString('vi-VN');
+            const time = new Date(item.timestamp).toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const icon = item.type === 'image' ? '🖼️' : '🎬';
+            const truncatedPrompt = item.prompt.length > 100 ? 
+                item.prompt.substring(0, 100) + '...' : item.prompt;
+            
+            return `
+                <div class="history-item" data-id="${item.id}">
+                    <div class="history-header">
+                        <span class="history-icon">${icon}</span>
+                        <span class="history-date">${date} ${time}</span>
+                    </div>
+                    <div class="history-prompt">${truncatedPrompt}</div>
+                    <div class="history-actions">
+                        <button class="history-reuse" onclick="historyManager.reusePrompt('${item.id}')">
+                            🔄 Sử dụng lại
+                        </button>
+                        <button class="history-delete" onclick="historyManager.deleteItem('${item.id}')">
+                            🗑️ Xóa
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        
+        this.historyContent.innerHTML = historyHTML;
+    }
+
+    reusePrompt(itemId) {
+        const history = this.getHistory();
+        const item = history.find(h => h.id == itemId);
+        
+        if (item) {
+            // Switch to appropriate tab
+            window.uiStateManager.switchTab(item.type);
+            
+            // Fill the prompt
+            const promptInput = item.type === 'image' ? 
+                document.getElementById('imagePrompt') : 
+                document.getElementById('videoPrompt');
+            
+            if (promptInput) {
+                promptInput.value = item.prompt;
+            }
+            
+            // Hide history
+            this.hideHistory();
+        }
+    }
+
+    deleteItem(itemId) {
+        if (confirm('Bạn có chắc chắn muốn xóa mục này khỏi lịch sử?')) {
+            let history = this.getHistory();
+            history = history.filter(item => item.id != itemId);
+            localStorage.setItem('prompt_history', JSON.stringify(history));
+            this.renderHistory();
+        }
+    }
+
+    clearHistory() {
+        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ lịch sử?')) {
+            localStorage.removeItem('prompt_history');
+            this.renderHistory();
+        }
+    }
+}
+
+// Main Prompt Generator Class
 class PromptGenerator {
     constructor() {
         this.ai = null;
+        this.currentContentType = 'image';
         this.initializeElements();
         this.bindEvents();
     }
 
     initializeElements() {
-        // Input elements
+        // Global elements
         this.apiKeyInput = document.getElementById('apiKey');
-        this.promptInput = document.getElementById('prompt');
-        this.promptLabel = document.getElementById('promptLabel');
-        this.contentTypeTabs = document.querySelectorAll('.tab-btn');
+        this.apiKeySave = document.getElementById('apiKeySave');
+        
+        // Advanced API key elements
+        this.advancedApiKeyInput = document.getElementById('advancedApiKey');
+        this.showApiKeyBtn = document.getElementById('showApiKey');
+        this.saveAdvancedApiKeyBtn = document.getElementById('saveAdvancedApiKey');
+        this.clearApiKeyBtn = document.getElementById('clearApiKey');
+        
+        // Video API key elements
+        this.videoAdvancedApiKeyInput = document.getElementById('videoAdvancedApiKey');
+        this.showVideoApiKeyBtn = document.getElementById('showVideoApiKey');
+        this.saveVideoApiKeyBtn = document.getElementById('saveVideoApiKey');
+        this.clearVideoApiKeyBtn = document.getElementById('clearVideoApiKey');
+        
+        // Image tab elements
+        this.imagePromptInput = document.getElementById('imagePrompt');
+        this.imageStyleOptions = document.querySelectorAll('#imageTab .style-option');
+        this.generateImageBtn = document.getElementById('generateImageBtn');
+        this.imageResults = document.getElementById('imageResults');
+        
+        // Video tab elements
+        this.videoPromptInput = document.getElementById('videoPrompt');
+        this.videoStyleOptions = document.querySelectorAll('#videoTab .style-option');
+        this.templateChips = document.querySelectorAll('.template-chip');
+        this.generateVideoBtn = document.getElementById('generateVideoBtn');
+        this.videoResults = document.getElementById('videoResults');
+        
+        // Shared config elements
         this.artStyleSelect = document.getElementById('artStyle');
+        this.videoStyleInput = document.getElementById('videoStyle');
         this.detailLevelSelect = document.getElementById('detailLevel');
         this.aspectRatioSelect = document.getElementById('aspectRatio');
         this.numberOfPromptsSelect = document.getElementById('numberOfPrompts');
@@ -30,64 +269,243 @@ class PromptGenerator {
         this.guidanceValueSpan = document.getElementById('guidanceValue');
         this.seedInput = document.getElementById('seed');
         
-        // Video template elements
-        this.videoTemplatesSection = document.getElementById('videoTemplates');
-        this.templateCards = document.querySelectorAll('.template-card');
+        // Video specific config elements
+        this.videoModelSelect = document.getElementById('videoModelSelect');
+        this.videoCustomSystemPromptInput = document.getElementById('videoCustomSystemPrompt');
+        this.showVideoDefaultPromptBtn = document.getElementById('showVideoDefaultPromptBtn');
+        this.useVideoDefaultPromptBtn = document.getElementById('useVideoDefaultPromptBtn');
+        this.editVideoDefaultPromptBtn = document.getElementById('editVideoDefaultPromptBtn');
+        this.videoDefaultPromptViewer = document.getElementById('videoDefaultPromptViewer');
+        this.videoDefaultPromptContent = document.getElementById('videoDefaultPromptContent');
+        this.editVideoPromptBtn = document.getElementById('editVideoPromptBtn');
         
-        // Control elements
-        this.generateBtn = document.getElementById('generateBtn');
-        this.btnText = document.querySelector('.btn-text');
-        this.btnLoading = document.querySelector('.btn-loading');
+        // Video specific elements
+        this.videoDetailLevelSelect = document.getElementById('videoDetailLevel');
+        this.videoAspectRatioSelect = document.getElementById('videoAspectRatio');
+        this.videoLengthSelect = document.getElementById('videoLength');
+        this.numberOfVideoPromptsSelect = document.getElementById('numberOfVideoPrompts');
         
-        // Output elements
+        // Status elements
         this.errorMessage = document.getElementById('errorMessage');
         this.loadingMessage = document.getElementById('loadingMessage');
-        this.promptResults = document.getElementById('promptResults');
     }
 
     bindEvents() {
-        this.generateBtn.addEventListener('click', () => this.generatePrompts());
-        this.guidanceScaleInput.addEventListener('input', (e) => {
-            this.guidanceValueSpan.textContent = e.target.value;
-        });
-        
-        // Enter key support for prompt
-        this.promptInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                this.generatePrompts();
+        // API Key management
+        this.apiKeySave.addEventListener('click', () => this.saveApiKey());
+        this.apiKeyInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                this.saveApiKey();
             }
         });
-
-        // Load saved settings
-        this.loadSavedSettings();
-        this.apiKeyInput.addEventListener('change', () => this.saveSettings());
-        this.modelSelect.addEventListener('change', () => this.saveSettings());
-        this.customSystemPromptInput.addEventListener('change', () => this.saveSettings());
         
-        // Content type tabs
-        this.currentContentType = 'image';
-        this.contentTypeTabs.forEach(tab => {
-            tab.addEventListener('click', (e) => this.switchContentType(e.target.dataset.type));
+        // Advanced API Key management
+        this.bindAdvancedApiKeyEvents();
+        
+        // Image tab events
+        this.generateImageBtn.addEventListener('click', () => this.generatePrompts('image'));
+        this.imagePromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                this.generatePrompts('image');
+            }
         });
         
-        // Prompt control buttons
-        this.showDefaultPromptBtn.addEventListener('click', () => this.toggleDefaultPromptViewer());
-        this.useDefaultPromptBtn.addEventListener('click', () => this.useDefaultPrompt());
-        this.editDefaultPromptBtn.addEventListener('click', () => this.editDefaultPrompt());
-        this.resetSettingsBtn.addEventListener('click', () => this.resetAllSettings());
+        // Video tab events
+        this.generateVideoBtn.addEventListener('click', () => this.generatePrompts('video'));
+        this.videoPromptInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                this.generatePrompts('video');
+            }
+        });
         
-        // Template card click handlers (will be bound after DOM is ready)
+        // Style selection events
+        this.bindStyleSelectionEvents();
         this.bindTemplateEvents();
+        
+        // Settings events
+        this.guidanceScaleInput?.addEventListener('input', (e) => {
+            if (this.guidanceValueSpan) {
+                this.guidanceValueSpan.textContent = e.target.value;
+            }
+        });
+        
+        // Load saved settings
+        this.loadSavedSettings();
+        this.modelSelect?.addEventListener('change', () => this.saveSettings());
+        this.customSystemPromptInput?.addEventListener('change', () => this.saveSettings());
+        this.videoModelSelect?.addEventListener('change', () => this.saveSettings());
+        this.videoCustomSystemPromptInput?.addEventListener('change', () => this.saveSettings());
+        
+        // Prompt control buttons
+        this.showDefaultPromptBtn?.addEventListener('click', () => this.toggleDefaultPromptViewer());
+        this.useDefaultPromptBtn?.addEventListener('click', () => this.useDefaultPrompt());
+        this.editDefaultPromptBtn?.addEventListener('click', () => this.editDefaultPrompt());
+        this.resetSettingsBtn?.addEventListener('click', () => this.resetAllSettings());
+        
+        // Video prompt control buttons
+        this.showVideoDefaultPromptBtn?.addEventListener('click', () => this.toggleVideoDefaultPromptViewer());
+        this.useVideoDefaultPromptBtn?.addEventListener('click', () => this.useVideoDefaultPrompt());
+        this.editVideoDefaultPromptBtn?.addEventListener('click', () => this.editVideoDefaultPrompt());
+        this.editVideoPromptBtn?.addEventListener('click', () => this.editVideoDefaultPrompt());
+    }
+
+    bindStyleSelectionEvents() {
+        // Image style selection
+        this.imageStyleOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                this.selectStyle(option, 'image');
+            });
+        });
+        
+        // Video style selection
+        this.videoStyleOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                this.selectStyle(option, 'video');
+            });
+        });
+    }
+    
+    selectStyle(selectedOption, type) {
+        const container = selectedOption.closest('.style-selection');
+        const options = container.querySelectorAll('.style-option');
+        const styleValue = selectedOption.dataset.style;
+        
+        // Update visual selection
+        options.forEach(opt => opt.classList.remove('active'));
+        selectedOption.classList.add('active');
+        
+        // Update hidden input
+        if (type === 'image') {
+            this.artStyleSelect.value = styleValue;
+        } else {
+            this.videoStyleInput.value = styleValue;
+        }
+    }
+    
+    bindAdvancedApiKeyEvents() {
+        // Image tab advanced API key
+        this.showApiKeyBtn?.addEventListener('click', () => this.toggleApiKeyVisibility('advancedApiKey'));
+        this.saveAdvancedApiKeyBtn?.addEventListener('click', () => this.saveAdvancedApiKey('advancedApiKey'));
+        this.clearApiKeyBtn?.addEventListener('click', () => this.clearAdvancedApiKey('advancedApiKey'));
+        
+        // Video tab advanced API key
+        this.showVideoApiKeyBtn?.addEventListener('click', () => this.toggleApiKeyVisibility('videoAdvancedApiKey'));
+        this.saveVideoApiKeyBtn?.addEventListener('click', () => this.saveAdvancedApiKey('videoAdvancedApiKey'));
+        this.clearVideoApiKeyBtn?.addEventListener('click', () => this.clearAdvancedApiKey('videoAdvancedApiKey'));
+        
+        // Load current API key to advanced inputs
+        this.loadApiKeyToAdvanced();
+    }
+    
+    loadApiKeyToAdvanced() {
+        const savedApiKey = localStorage.getItem('gemini_api_key');
+        if (savedApiKey) {
+            if (this.advancedApiKeyInput) {
+                this.advancedApiKeyInput.value = savedApiKey;
+                this.advancedApiKeyInput.type = 'password';
+            }
+            if (this.videoAdvancedApiKeyInput) {
+                this.videoAdvancedApiKeyInput.value = savedApiKey;
+                this.videoAdvancedApiKeyInput.type = 'password';
+            }
+        }
+    }
+    
+    toggleApiKeyVisibility(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        if (input.type === 'password') {
+            input.type = 'text';
+            // Update button text
+            const showBtn = inputId === 'advancedApiKey' ? this.showApiKeyBtn : this.showVideoApiKeyBtn;
+            showBtn.innerHTML = '🙈 Ẩn';
+        } else {
+            input.type = 'password';
+            const showBtn = inputId === 'advancedApiKey' ? this.showApiKeyBtn : this.showVideoApiKeyBtn;
+            showBtn.innerHTML = '👁️ Hiện';
+        }
+    }
+    
+    saveAdvancedApiKey(inputId) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        
+        const apiKey = input.value.trim();
+        if (apiKey) {
+            localStorage.setItem('gemini_api_key', apiKey);
+            // Sync to other inputs
+            this.syncApiKeyInputs(apiKey);
+            this.showSuccessMessage('API key đã được lưu thành công! 🔑');
+            window.uiStateManager.hideApiKeySection();
+        } else {
+            this.showError('Vui lòng nhập API key hợp lệ');
+        }
+    }
+    
+    clearAdvancedApiKey(inputId) {
+        if (confirm('Bạn có chắc chắn muốn xóa API key? Bạn sẽ cần nhập lại để sử dụng ứng dụng.')) {
+            localStorage.removeItem('gemini_api_key');
+            // Clear all API key inputs
+            this.apiKeyInput.value = '';
+            if (this.advancedApiKeyInput) this.advancedApiKeyInput.value = '';
+            if (this.videoAdvancedApiKeyInput) this.videoAdvancedApiKeyInput.value = '';
+            
+            this.showSuccessMessage('API key đã được xóa! 🗑️');
+            window.uiStateManager.showApiKeySection();
+        }
+    }
+    
+    syncApiKeyInputs(apiKey) {
+        // Sync API key to all inputs
+        this.apiKeyInput.value = apiKey;
+        if (this.advancedApiKeyInput) this.advancedApiKeyInput.value = apiKey;
+        if (this.videoAdvancedApiKeyInput) this.videoAdvancedApiKeyInput.value = apiKey;
+    }
+    
+    toggleVideoDefaultPromptViewer() {
+        if (!this.videoDefaultPromptViewer || !this.videoDefaultPromptContent || !this.showVideoDefaultPromptBtn) {
+            this.showError('Video default prompt viewer elements not found');
+            return;
+        }
+
+        if (this.videoDefaultPromptViewer.style.display === 'none') {
+            this.videoDefaultPromptContent.textContent = this.getDefaultSystemPrompt('video');
+            this.videoDefaultPromptViewer.style.display = 'block';
+            this.showVideoDefaultPromptBtn.textContent = '🔼 Ẩn Video Prompt Mặc Định';
+        } else {
+            this.videoDefaultPromptViewer.style.display = 'none';
+            this.showVideoDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+        }
+    }
+    
+    useVideoDefaultPrompt() {
+        if (this.videoCustomSystemPromptInput) {
+            this.videoCustomSystemPromptInput.value = '';
+            this.saveSettings();
+            this.showSuccessMessage('✅ Đã reset về system prompt mặc định cho video!');
+        }
+    }
+    
+    editVideoDefaultPrompt() {
+        if (this.videoCustomSystemPromptInput) {
+            const defaultPrompt = this.getDefaultSystemPrompt('video');
+            this.videoCustomSystemPromptInput.value = defaultPrompt;
+            this.saveSettings();
+            
+            // Scroll to the textarea
+            this.videoCustomSystemPromptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            this.videoCustomSystemPromptInput.focus();
+            
+            this.showSuccessMessage('📝 Video prompt mặc định đã được tải vào ô chỉnh sửa. Bạn có thể tùy chỉnh theo ý muốn!');
+        }
     }
 
     bindTemplateEvents() {
-        // Wait for DOM to be ready and bind template card events
-        setTimeout(() => {
-            this.templateCards = document.querySelectorAll('.template-card');
-            this.templateCards.forEach(card => {
-                card.addEventListener('click', () => this.handleTemplateClick(card));
-            });
-        }, 100);
+        // Video template chips
+        this.templateChips.forEach(chip => {
+            chip.addEventListener('click', () => this.handleTemplateClick(chip));
+        });
     }
 
     loadSavedSettings() {
@@ -97,53 +515,58 @@ class PromptGenerator {
         }
 
         const savedModel = localStorage.getItem('gemini_model');
-        if (savedModel) {
+        if (savedModel && this.modelSelect) {
             this.modelSelect.value = savedModel;
         }
 
         const savedSystemPrompt = localStorage.getItem('custom_system_prompt');
-        if (savedSystemPrompt) {
+        if (savedSystemPrompt && this.customSystemPromptInput) {
             this.customSystemPromptInput.value = savedSystemPrompt;
+        }
+        
+        const savedVideoModel = localStorage.getItem('video_gemini_model');
+        if (savedVideoModel && this.videoModelSelect) {
+            this.videoModelSelect.value = savedVideoModel;
+        }
+        
+        const savedVideoSystemPrompt = localStorage.getItem('video_custom_system_prompt');
+        if (savedVideoSystemPrompt && this.videoCustomSystemPromptInput) {
+            this.videoCustomSystemPromptInput.value = savedVideoSystemPrompt;
         }
     }
 
     saveSettings() {
+        if (this.modelSelect) {
+            localStorage.setItem('gemini_model', this.modelSelect.value);
+        }
+        if (this.customSystemPromptInput) {
+            localStorage.setItem('custom_system_prompt', this.customSystemPromptInput.value.trim());
+        }
+        if (this.videoModelSelect) {
+            localStorage.setItem('video_gemini_model', this.videoModelSelect.value);
+        }
+        if (this.videoCustomSystemPromptInput) {
+            localStorage.setItem('video_custom_system_prompt', this.videoCustomSystemPromptInput.value.trim());
+        }
+    }
+    
+    saveApiKey() {
         const apiKey = this.apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem('gemini_api_key', apiKey);
+            // Sync to advanced inputs
+            this.syncApiKeyInputs(apiKey);
+            window.uiStateManager.hideApiKeySection();
+            this.showSuccessMessage('API key đã được lưu thành công! 🔑');
         } else {
-            localStorage.removeItem('gemini_api_key');
-        }
-
-        localStorage.setItem('gemini_model', this.modelSelect.value);
-        localStorage.setItem('custom_system_prompt', this.customSystemPromptInput.value.trim());
-    }
-
-    switchContentType(type) {
-        this.currentContentType = type;
-        
-        // Update tab active state
-        this.contentTypeTabs.forEach(tab => {
-            tab.classList.remove('active');
-            if (tab.dataset.type === type) {
-                tab.classList.add('active');
-            }
-        });
-
-        // Update UI based on content type
-        if (type === 'image') {
-            this.promptLabel.textContent = 'Ý tưởng hình ảnh của bạn:';
-            this.promptInput.placeholder = 'Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh...';
-            this.videoTemplatesSection.style.display = 'none';
-        } else if (type === 'video') {
-            this.promptLabel.textContent = 'Ý tưởng video của bạn:';
-            this.promptInput.placeholder = 'Ví dụ: Một con mèo đang chạy qua cánh đồng hoa, camera theo chuyển động...';
-            this.videoTemplatesSection.style.display = 'block';
+            this.showError('Vui lòng nhập API key hợp lệ');
         }
     }
 
-    getDefaultSystemPrompt() {
-        if (this.currentContentType === 'video') {
+    // This method is no longer needed as tab switching is handled by UIStateManager
+
+    getDefaultSystemPrompt(contentType = 'image') {
+        if (contentType === 'video') {
             return `You are an expert AI video prompt engineer.
 Your role is to assist users in generating **structured, cinematic-quality prompts** for AI video generation tools (e.g., Runway Gen-4, Pika, Sora).
 
@@ -273,52 +696,82 @@ Quy tắc tạo prompt:
             this.seedInput.value = '';
             
             // Reset to image tab
-            this.switchContentType('image');
+            // Switch to image tab and reset style selection
+            window.uiStateManager.switchTab('image');
             
-            // Hide default prompt viewer
-            this.defaultPromptViewer.style.display = 'none';
-            this.showDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+            // Reset image style selection
+            this.imageStyleOptions.forEach(opt => opt.classList.remove('active'));
+            this.imageStyleOptions[0]?.classList.add('active');
+            this.artStyleSelect.value = 'realistic';
             
-            // Reset template cards
-            this.templateCards.forEach(card => {
-                card.classList.remove('selected');
+            // Reset video style selection
+            this.videoStyleOptions.forEach(opt => opt.classList.remove('active'));
+            this.videoStyleOptions[0]?.classList.add('active');
+            this.videoStyleInput.value = 'cinematic';
+            
+            // Hide image default prompt viewer
+            if (this.defaultPromptViewer) {
+                this.defaultPromptViewer.style.display = 'none';
+            }
+            if (this.showDefaultPromptBtn) {
+                this.showDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+            }
+            
+            // Reset template chips
+            this.templateChips.forEach(chip => {
+                chip.classList.remove('active');
             });
+            
+            // Reset video-specific settings
+            if (this.videoModelSelect) this.videoModelSelect.value = 'gemini-1.5-flash';
+            if (this.videoCustomSystemPromptInput) this.videoCustomSystemPromptInput.value = '';
+            
+            // Hide video default prompt viewer
+            if (this.videoDefaultPromptViewer) {
+                this.videoDefaultPromptViewer.style.display = 'none';
+                if (this.showVideoDefaultPromptBtn) {
+                    this.showVideoDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+                }
+            }
             
             alert('🔄 Đã reset tất cả cài đặt về mặc định! (API key được giữ lại)');
         }
     }
 
-    handleTemplateClick(card) {
-        const template = card.dataset.template;
-        const currentPrompt = this.promptInput.value.trim();
+    handleTemplateClick(chip) {
+        const template = chip.dataset.template;
+        const currentPrompt = this.videoPromptInput.value.trim();
         
         // Toggle selected state
-        card.classList.toggle('selected');
+        chip.classList.toggle('active');
         
-        // Add template to prompt
-        if (card.classList.contains('selected')) {
+        // Add or remove template from prompt
+        if (chip.classList.contains('active')) {
             if (currentPrompt) {
-                this.promptInput.value = currentPrompt + ', ' + template;
+                this.videoPromptInput.value = currentPrompt + ', ' + template;
             } else {
-                this.promptInput.value = template;
+                this.videoPromptInput.value = template;
             }
         } else {
             // Remove template from prompt
             const newPrompt = currentPrompt.replace(new RegExp(`,?\\s*${template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'), '').replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim();
-            this.promptInput.value = newPrompt;
+            this.videoPromptInput.value = newPrompt;
         }
     }
 
-    validateInputs() {
-        const apiKey = this.apiKeyInput.value.trim();
-        const prompt = this.promptInput.value.trim();
+    validateInputs(contentType) {
+        const apiKey = this.apiKeyInput.value.trim() || localStorage.getItem('gemini_api_key');
+        const promptInput = contentType === 'image' ? this.imagePromptInput : this.videoPromptInput;
+        const prompt = promptInput.value.trim();
 
         if (!apiKey) {
+            window.uiStateManager.showApiKeySection();
             throw new Error('Vui lòng nhập API key Gemini');
         }
 
         if (!prompt) {
-            throw new Error('Vui lòng nhập ý tưởng hình ảnh');
+            const contentName = contentType === 'image' ? 'hình ảnh' : 'video';
+            throw new Error(`Vui lòng nhập ý tưởng ${contentName}`);
         }
 
         if (prompt.length < 5) {
@@ -328,30 +781,41 @@ Quy tắc tạo prompt:
         return { apiKey, prompt };
     }
 
-    getPromptGenerationConfig() {
-        const artStyle = this.artStyleSelect.value;
-        const detailLevel = this.detailLevelSelect.value;
-        const aspectRatio = this.aspectRatioSelect.value;
-        const numberOfPrompts = parseInt(this.numberOfPromptsSelect.value);
-        const contentType = this.currentContentType;
-        
-        return {
-            artStyle,
-            detailLevel,
-            aspectRatio,
-            numberOfPrompts,
-            contentType
-        };
+    getPromptGenerationConfig(contentType) {
+        if (contentType === 'image') {
+            return {
+                artStyle: this.artStyleSelect.value,
+                detailLevel: this.detailLevelSelect?.value || 'detailed',
+                aspectRatio: this.aspectRatioSelect?.value || '1:1',
+                numberOfPrompts: parseInt(this.numberOfPromptsSelect?.value || '3'),
+                contentType: 'image'
+            };
+        } else {
+            return {
+                artStyle: this.videoStyleInput.value,
+                detailLevel: this.videoDetailLevelSelect?.value || 'detailed',
+                aspectRatio: this.videoAspectRatioSelect?.value || '16:9',
+                numberOfPrompts: parseInt(this.numberOfVideoPromptsSelect?.value || '3'),
+                videoLength: this.videoLengthSelect?.value || 'medium',
+                contentType: 'video'
+            };
+        }
     }
 
-    buildSystemPrompt() {
-        const customPrompt = this.customSystemPromptInput.value.trim();
+    buildSystemPrompt(contentType) {
+        let customPrompt;
+        
+        if (contentType === 'video') {
+            customPrompt = this.videoCustomSystemPromptInput?.value.trim();
+        } else {
+            customPrompt = this.customSystemPromptInput?.value.trim();
+        }
         
         if (customPrompt) {
             return customPrompt;
         }
 
-        return this.getDefaultSystemPrompt();
+        return this.getDefaultSystemPrompt(contentType);
     }
 
     showError(message) {
@@ -364,61 +828,83 @@ Quy tắc tạo prompt:
         this.errorMessage.style.display = 'none';
     }
 
-    showLoading() {
+    showLoading(contentType) {
         this.loadingMessage.style.display = 'block';
-        this.generateBtn.disabled = true;
-        this.btnText.style.display = 'none';
-        this.btnLoading.style.display = 'flex';
+        
+        const generateBtn = contentType === 'image' ? this.generateImageBtn : this.generateVideoBtn;
+        const btnText = generateBtn.querySelector('.btn-text');
+        const btnLoading = generateBtn.querySelector('.btn-loading');
+        
+        generateBtn.disabled = true;
+        btnText.style.display = 'none';
+        btnLoading.style.display = 'flex';
     }
 
-    hideLoading() {
+    hideLoading(contentType) {
         this.loadingMessage.style.display = 'none';
-        this.generateBtn.disabled = false;
-        this.btnText.style.display = 'inline';
-        this.btnLoading.style.display = 'none';
+        
+        const generateBtn = contentType === 'image' ? this.generateImageBtn : this.generateVideoBtn;
+        const btnText = generateBtn.querySelector('.btn-text');
+        const btnLoading = generateBtn.querySelector('.btn-loading');
+        
+        generateBtn.disabled = false;
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
     }
 
-    async generatePrompts() {
+    async generatePrompts(contentType = 'image') {
         try {
             this.hideError();
             
             // Validate inputs
-            const { apiKey, prompt } = this.validateInputs();
+            const { apiKey, prompt } = this.validateInputs(contentType);
             
-            // Initialize AI client
-            this.ai = new GoogleGenAI({ apiKey });
+            // Initialize AI client with proper API key format
+            this.ai = new GoogleGenerativeAI(apiKey);
             
             // Show loading
-            this.showLoading();
+            this.showLoading(contentType);
             
             // Get configuration
-            const config = this.getPromptGenerationConfig();
+            const config = this.getPromptGenerationConfig(contentType);
             
             // Build the detailed prompt for Gemini
-            const systemPrompt = this.buildSystemPrompt();
+            const systemPrompt = this.buildSystemPrompt(contentType);
             const userPrompt = this.buildUserPrompt(prompt, config);
             
             // Generate prompts using Gemini
-            const selectedModel = this.modelSelect.value;
-            const response = await this.ai.models.generateContent({
-                model: selectedModel,
-                contents: [
-                    { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
-                ],
-                config: {
+            let selectedModel;
+            if (contentType === 'video') {
+                selectedModel = this.videoModelSelect?.value || 'gemini-1.5-flash';
+            } else {
+                selectedModel = this.modelSelect?.value || 'gemini-1.5-flash';
+            }
+            const model = this.ai.getGenerativeModel({ model: selectedModel });
+            
+            const response = await model.generateContent({
+                contents: [{
+                    role: 'user',
+                    parts: [{ text: systemPrompt + '\n\n' + userPrompt }]
+                }],
+                generationConfig: {
                     temperature: 0.8,
                     maxOutputTokens: 2048
                 }
             });
 
             // Process results
-            this.displayPromptResults(response, prompt, config);
+            this.displayPromptResults(response, prompt, config, contentType);
+            
+            // Add to history
+            if (window.historyManager) {
+                window.historyManager.addToHistory(contentType, prompt, response.response.text());
+            }
             
         } catch (error) {
             console.error('Error generating prompts:', error);
             this.showError(this.getErrorMessage(error));
         } finally {
-            this.hideLoading();
+            this.hideLoading(contentType);
         }
     }
 
@@ -448,12 +934,14 @@ Quy tắc tạo prompt:
         };
 
         const contentTypeText = config.contentType === 'video' ? 'video' : 'hình ảnh';
+        const videoLengthInfo = config.videoLength ? `
+Độ dài video: ${config.videoLength}` : '';
         
         return `Ý tưởng gốc: "${userIdea}"
 Loại nội dung: ${contentTypeText}
 Phong cách: ${styleMap[config.artStyle]}
 Mức độ chi tiết: ${detailMap[config.detailLevel]}
-Tỷ lệ khung hình: ${config.aspectRatio}
+Tỷ lệ khung hình: ${config.aspectRatio}${videoLengthInfo}
 Số lượng prompt cần tạo: ${config.numberOfPrompts}
 
 Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, mỗi prompt có cách diễn đạt khác nhau nhưng cùng phong cách "${config.artStyle}".`;
@@ -479,17 +967,20 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
         return error.message || 'Đã xảy ra lỗi không xác định. Vui lòng thử lại.';
     }
 
-    displayPromptResults(response, originalIdea, config) {
-        // Clear previous results
-        this.promptResults.innerHTML = '';
+    displayPromptResults(response, originalIdea, config, contentType) {
+        // Get the appropriate results container
+        const resultsContainer = contentType === 'image' ? this.imageResults : this.videoResults;
         
-        if (!response.text) {
+        // Clear previous results
+        resultsContainer.innerHTML = '';
+        
+        if (!response.response?.text()) {
             this.showError('Không thể tạo mô tả. Vui lòng thử lại.');
             return;
         }
 
         // Parse the response to extract individual prompts
-        const generatedText = response.text;
+        const generatedText = response.response.text();
         const prompts = this.parseGeneratedPrompts(generatedText);
         
         if (prompts.length === 0) {
@@ -497,31 +988,46 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
             return;
         }
 
+        // Create prompt elements
         prompts.forEach((promptData, index) => {
-            this.createPromptElement(promptData, index, originalIdea, config);
+            this.createPromptElement(promptData, index, originalIdea, config, contentType, resultsContainer);
         });
     }
 
     parseGeneratedPrompts(text) {
         const prompts = [];
         const sections = text.split('---').filter(section => section.trim());
-        
+
         sections.forEach((section, index) => {
             const lines = section.trim().split('\n');
             let promptText = '';
             let vietnameseDescription = '';
             let negativePrompt = '';
             let currentSection = '';
-            
+
             lines.forEach(line => {
                 line = line.trim();
-                if (line.startsWith('**Prompt')) {
+
+                // Check for new format headers
+                if (line.startsWith('**Video Prompt') || line.startsWith('**Prompt')) {
                     currentSection = 'prompt';
-                } else if (line.startsWith('**Mô tả tiếng Việt')) {
+                } else if (line.startsWith('**English:**')) {
+                    currentSection = 'prompt';
+                    // Extract content after "English:"
+                    const content = line.replace('**English:**', '').trim();
+                    if (content) promptText += content + ' ';
+                } else if (line.startsWith('**Mô tả Tiếng Việt:**')) {
                     currentSection = 'vietnamese';
-                } else if (line.startsWith('**Negative Prompt')) {
+                    // Extract content after "Mô tả Tiếng Việt:"
+                    const content = line.replace('**Mô tả Tiếng Việt:**', '').trim();
+                    if (content) vietnameseDescription += content + ' ';
+                } else if (line.startsWith('**Negative Prompt:**')) {
                     currentSection = 'negative';
-                } else if (line && !line.startsWith('**')) {
+                    // Extract content after "Negative Prompt:"
+                    const content = line.replace('**Negative Prompt:**', '').trim();
+                    if (content) negativePrompt += content + ' ';
+                } else if (line && !line.startsWith('**') && currentSection) {
+                    // Continue collecting content for current section
                     if (currentSection === 'prompt') {
                         promptText += line + ' ';
                     } else if (currentSection === 'vietnamese') {
@@ -531,7 +1037,7 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
                     }
                 }
             });
-            
+
             if (promptText.trim()) {
                 prompts.push({
                     prompt: promptText.trim(),
@@ -541,11 +1047,11 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
                 });
             }
         });
-        
+
         return prompts;
     }
 
-    createPromptElement(promptData, index, originalIdea, config) {
+    createPromptElement(promptData, index, originalIdea, config, contentType, container) {
         const promptItem = document.createElement('div');
         promptItem.className = 'prompt-item';
         
@@ -610,7 +1116,7 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
             </div>
         `;
         
-        this.promptResults.appendChild(promptItem);
+        container.appendChild(promptItem);
         
         // Add event listeners for this prompt item
         const copyBtn = promptItem.querySelector('.copy-prompt-btn');
@@ -699,10 +1205,12 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
     }
 }
 
-// Initialize the application
+// Initialize the application components
+window.uiStateManager = new UIStateManager();
+window.historyManager = new HistoryManager();
 window.promptApp = new PromptGenerator();
 
-// Add some example prompts
+// Add example prompts
 const examplePrompts = [
     "Một con mèo dễ thương đang ngồi trên cỏ xanh dưới ánh nắng mặt trời, phong cách anime",
     "Phong cảnh núi non hùng vĩ với thác nước và cầu vồng, phong cách fantasy",
@@ -711,16 +1219,143 @@ const examplePrompts = [
     "Khu vườn hoa anh đào nở rộ với con đường đá nhỏ, phong cách Nhật Bản truyền thống"
 ];
 
-// Add example prompt functionality
+// Add CSS for history items (dynamic styles)
+const historyStyles = document.createElement('style');
+historyStyles.textContent = `
+.history-item {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    border: 2px solid var(--border-color);
+    transition: all var(--transition-base);
+}
+
+.history-item:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-md);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.history-icon {
+    font-size: var(--font-size-lg);
+}
+
+.history-date {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+}
+
+.history-prompt {
+    color: var(--text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    margin-bottom: var(--spacing-md);
+    border-left: 3px solid var(--primary-color);
+    padding-left: var(--spacing-md);
+    background: white;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-sm);
+}
+
+.history-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.history-reuse,
+.history-delete {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 2px solid var(--primary-color);
+    background: transparent;
+    color: var(--primary-color);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    flex: 1;
+}
+
+.history-reuse:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.history-delete {
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.history-delete:hover {
+    background: var(--danger-color);
+    color: white;
+}
+`;
+document.head.appendChild(historyStyles);
+
+// Add rotating placeholder functionality
 document.addEventListener('DOMContentLoaded', () => {
-    const promptInput = document.getElementById('prompt');
+    const imagePromptInput = document.getElementById('imagePrompt');
+    const videoPromptInput = document.getElementById('videoPrompt');
     
-    // Add placeholder with rotating examples
-    let exampleIndex = 0;
-    setInterval(() => {
-        if (!promptInput.value && document.activeElement !== promptInput) {
-            promptInput.placeholder = examplePrompts[exampleIndex];
-            exampleIndex = (exampleIndex + 1) % examplePrompts.length;
+    if (imagePromptInput) {
+        let exampleIndex = 0;
+        setInterval(() => {
+            if (!imagePromptInput.value && document.activeElement !== imagePromptInput) {
+                imagePromptInput.placeholder = examplePrompts[exampleIndex];
+                exampleIndex = (exampleIndex + 1) % examplePrompts.length;
+            }
+        }, 4000);
+    }
+    
+    // Video examples
+    const videoExamples = [
+        "Một con mèo đang chạy qua cánh đồng hoa, camera theo chuyển động từ xa đến gần",
+        "Cảnh bình minh trên núi, ánh nắng chiếu qua sương mù, camera pan từ trái sang phải",
+        "Nhân vật đang đi bộ trên phố, camera handheld tạo cảm giác tự nhiên",
+        "Drone bay qua thành phố về đêm, đèn neon lung linh, chuyển động mượt mà",
+        "Cận cảnh đôi mắt, zoom out để lộ khuôn mặt, ánh sáng kịch tính"
+    ];
+    
+    if (videoPromptInput) {
+        let videoExampleIndex = 0;
+        setInterval(() => {
+            if (!videoPromptInput.value && document.activeElement !== videoPromptInput) {
+                videoPromptInput.placeholder = videoExamples[videoExampleIndex];
+                videoExampleIndex = (videoExampleIndex + 1) % videoExamples.length;
+            }
+        }, 4000);
+    }
+});
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + 1 = Switch to Image tab
+    if ((e.ctrlKey || e.metaKey) && e.key === '1') {
+        e.preventDefault();
+        window.uiStateManager.switchTab('image');
+    }
+    
+    // Ctrl/Cmd + 2 = Switch to Video tab
+    if ((e.ctrlKey || e.metaKey) && e.key === '2') {
+        e.preventDefault();
+        window.uiStateManager.switchTab('video');
+    }
+    
+    // Ctrl/Cmd + H = Toggle History
+    if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault();
+        if (window.historyManager.historySidebar.classList.contains('active')) {
+            window.historyManager.hideHistory();
+        } else {
+            window.historyManager.showHistory();
         }
-    }, 3000);
+    }
 });
