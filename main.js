@@ -30,6 +30,10 @@ class PromptGenerator {
         this.guidanceValueSpan = document.getElementById('guidanceValue');
         this.seedInput = document.getElementById('seed');
         
+        // Video template elements
+        this.videoTemplatesSection = document.getElementById('videoTemplates');
+        this.templateCards = document.querySelectorAll('.template-card');
+        
         // Control elements
         this.generateBtn = document.getElementById('generateBtn');
         this.btnText = document.querySelector('.btn-text');
@@ -71,6 +75,19 @@ class PromptGenerator {
         this.useDefaultPromptBtn.addEventListener('click', () => this.useDefaultPrompt());
         this.editDefaultPromptBtn.addEventListener('click', () => this.editDefaultPrompt());
         this.resetSettingsBtn.addEventListener('click', () => this.resetAllSettings());
+        
+        // Template card click handlers (will be bound after DOM is ready)
+        this.bindTemplateEvents();
+    }
+
+    bindTemplateEvents() {
+        // Wait for DOM to be ready and bind template card events
+        setTimeout(() => {
+            this.templateCards = document.querySelectorAll('.template-card');
+            this.templateCards.forEach(card => {
+                card.addEventListener('click', () => this.handleTemplateClick(card));
+            });
+        }, 100);
     }
 
     loadSavedSettings() {
@@ -117,9 +134,11 @@ class PromptGenerator {
         if (type === 'image') {
             this.promptLabel.textContent = 'Ý tưởng hình ảnh của bạn:';
             this.promptInput.placeholder = 'Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh...';
+            this.videoTemplatesSection.style.display = 'none';
         } else if (type === 'video') {
             this.promptLabel.textContent = 'Ý tưởng video của bạn:';
             this.promptInput.placeholder = 'Ví dụ: Một con mèo đang chạy qua cánh đồng hoa, camera theo chuyển động...';
+            this.videoTemplatesSection.style.display = 'block';
         }
     }
 
@@ -227,7 +246,33 @@ Quy tắc tạo prompt:
             this.defaultPromptViewer.style.display = 'none';
             this.showDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
             
+            // Reset template cards
+            this.templateCards.forEach(card => {
+                card.classList.remove('selected');
+            });
+            
             alert('🔄 Đã reset tất cả cài đặt về mặc định! (API key được giữ lại)');
+        }
+    }
+
+    handleTemplateClick(card) {
+        const template = card.dataset.template;
+        const currentPrompt = this.promptInput.value.trim();
+        
+        // Toggle selected state
+        card.classList.toggle('selected');
+        
+        // Add template to prompt
+        if (card.classList.contains('selected')) {
+            if (currentPrompt) {
+                this.promptInput.value = currentPrompt + ', ' + template;
+            } else {
+                this.promptInput.value = template;
+            }
+        } else {
+            // Remove template from prompt
+            const newPrompt = currentPrompt.replace(new RegExp(`,?\\s*${template.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'), '').replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim();
+            this.promptInput.value = newPrompt;
         }
     }
 
