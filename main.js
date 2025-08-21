@@ -11,10 +11,20 @@ class PromptGenerator {
         // Input elements
         this.apiKeyInput = document.getElementById('apiKey');
         this.promptInput = document.getElementById('prompt');
+        this.promptLabel = document.getElementById('promptLabel');
+        this.contentTypeTabs = document.querySelectorAll('.tab-btn');
         this.artStyleSelect = document.getElementById('artStyle');
         this.detailLevelSelect = document.getElementById('detailLevel');
         this.aspectRatioSelect = document.getElementById('aspectRatio');
         this.numberOfPromptsSelect = document.getElementById('numberOfPrompts');
+        this.modelSelect = document.getElementById('modelSelect');
+        this.customSystemPromptInput = document.getElementById('customSystemPrompt');
+        this.showDefaultPromptBtn = document.getElementById('showDefaultPromptBtn');
+        this.useDefaultPromptBtn = document.getElementById('useDefaultPromptBtn');
+        this.defaultPromptViewer = document.getElementById('defaultPromptViewer');
+        this.defaultPromptContent = document.getElementById('defaultPromptContent');
+        this.editDefaultPromptBtn = document.getElementById('editDefaultPromptBtn');
+        this.resetSettingsBtn = document.getElementById('resetSettingsBtn');
         this.negativePromptInput = document.getElementById('negativePrompt');
         this.guidanceScaleInput = document.getElementById('guidanceScale');
         this.guidanceValueSpan = document.getElementById('guidanceValue');
@@ -44,22 +54,180 @@ class PromptGenerator {
             }
         });
 
-        // Load saved API key
-        this.loadSavedApiKey();
-        this.apiKeyInput.addEventListener('change', () => this.saveApiKey());
+        // Load saved settings
+        this.loadSavedSettings();
+        this.apiKeyInput.addEventListener('change', () => this.saveSettings());
+        this.modelSelect.addEventListener('change', () => this.saveSettings());
+        this.customSystemPromptInput.addEventListener('change', () => this.saveSettings());
+        
+        // Content type tabs
+        this.currentContentType = 'image';
+        this.contentTypeTabs.forEach(tab => {
+            tab.addEventListener('click', (e) => this.switchContentType(e.target.dataset.type));
+        });
+        
+        // Prompt control buttons
+        this.showDefaultPromptBtn.addEventListener('click', () => this.toggleDefaultPromptViewer());
+        this.useDefaultPromptBtn.addEventListener('click', () => this.useDefaultPrompt());
+        this.editDefaultPromptBtn.addEventListener('click', () => this.editDefaultPrompt());
+        this.resetSettingsBtn.addEventListener('click', () => this.resetAllSettings());
     }
 
-    loadSavedApiKey() {
+    loadSavedSettings() {
         const savedApiKey = localStorage.getItem('gemini_api_key');
         if (savedApiKey) {
             this.apiKeyInput.value = savedApiKey;
         }
+
+        const savedModel = localStorage.getItem('gemini_model');
+        if (savedModel) {
+            this.modelSelect.value = savedModel;
+        }
+
+        const savedSystemPrompt = localStorage.getItem('custom_system_prompt');
+        if (savedSystemPrompt) {
+            this.customSystemPromptInput.value = savedSystemPrompt;
+        }
     }
 
-    saveApiKey() {
+    saveSettings() {
         const apiKey = this.apiKeyInput.value.trim();
         if (apiKey) {
             localStorage.setItem('gemini_api_key', apiKey);
+        } else {
+            localStorage.removeItem('gemini_api_key');
+        }
+
+        localStorage.setItem('gemini_model', this.modelSelect.value);
+        localStorage.setItem('custom_system_prompt', this.customSystemPromptInput.value.trim());
+    }
+
+    switchContentType(type) {
+        this.currentContentType = type;
+        
+        // Update tab active state
+        this.contentTypeTabs.forEach(tab => {
+            tab.classList.remove('active');
+            if (tab.dataset.type === type) {
+                tab.classList.add('active');
+            }
+        });
+
+        // Update UI based on content type
+        if (type === 'image') {
+            this.promptLabel.textContent = 'Ý tưởng hình ảnh của bạn:';
+            this.promptInput.placeholder = 'Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh...';
+        } else if (type === 'video') {
+            this.promptLabel.textContent = 'Ý tưởng video của bạn:';
+            this.promptInput.placeholder = 'Ví dụ: Một con mèo đang chạy qua cánh đồng hoa, camera theo chuyển động...';
+        }
+    }
+
+    getDefaultSystemPrompt() {
+        if (this.currentContentType === 'video') {
+            return `Bạn là một chuyên gia tạo prompt cho AI Video (Runway ML, Pika Labs, Stable Video). 
+Nhiệm vụ của bạn là chuyển đổi ý tưởng đơn giản thành các prompt video chi tiết, chuyên nghiệp.
+
+Quy tắc tạo prompt video:
+1. Bắt đầu với chủ thể và hành động chính
+2. Mô tả chuyển động, camera movement
+3. Thiết lập môi trường, bối cảnh
+4. Chỉ định phong cách quay phim
+5. Thêm thông số kỹ thuật (lighting, timing, transition)
+6. Kết thúc với negative prompt (những gì cần tránh)
+
+Định dạng trả về:
+**Video Prompt [số]:**
+[Mô tả chi tiết bằng tiếng Anh với focus vào movement và camera]
+
+**Mô tả tiếng Việt:**
+[Giải thích prompt video bằng tiếng Việt để người dùng hiểu]
+
+**Negative Prompt:**
+[Những gì cần tránh trong video bằng tiếng Anh]
+
+---`;
+        } else {
+            return `Bạn là một chuyên gia tạo prompt cho AI Art (Stable Diffusion, Midjourney, DALL-E). 
+Nhiệm vụ của bạn là chuyển đổi ý tưởng đơn giản thành các prompt chi tiết, chuyên nghiệp.
+
+Quy tắc tạo prompt:
+1. Bắt đầu với chủ thể chính
+2. Thêm chi tiết về hành động, cảm xúc
+3. Mô tả môi trường, bối cảnh
+4. Chỉ định phong cách nghệ thuật
+5. Thêm thông số kỹ thuật (lighting, composition, quality)
+6. Kết thúc với negative prompt (những gì cần tránh)
+
+Định dạng trả về:
+**Prompt [số]:**
+[Mô tả chi tiết bằng tiếng Anh]
+
+**Mô tả tiếng Việt:**
+[Giải thích prompt bằng tiếng Việt để người dùng hiểu]
+
+**Negative Prompt:**
+[Những gì cần tránh bằng tiếng Anh]
+
+---`;
+        }
+    }
+
+    toggleDefaultPromptViewer() {
+        if (this.defaultPromptViewer.style.display === 'none') {
+            this.defaultPromptContent.textContent = this.getDefaultSystemPrompt();
+            this.defaultPromptViewer.style.display = 'block';
+            this.showDefaultPromptBtn.textContent = '🔼 Ẩn Prompt Mặc Định';
+        } else {
+            this.defaultPromptViewer.style.display = 'none';
+            this.showDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+        }
+    }
+
+    useDefaultPrompt() {
+        this.customSystemPromptInput.value = '';
+        this.saveSettings();
+        alert('✅ Đã reset về system prompt mặc định!');
+    }
+
+    editDefaultPrompt() {
+        const defaultPrompt = this.getDefaultSystemPrompt();
+        this.customSystemPromptInput.value = defaultPrompt;
+        this.saveSettings();
+        
+        // Scroll to the textarea
+        this.customSystemPromptInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        this.customSystemPromptInput.focus();
+        
+        alert('📝 Prompt mặc định đã được tải vào ô chỉnh sửa. Bạn có thể tùy chỉnh theo ý muốn!');
+    }
+
+    resetAllSettings() {
+        if (confirm('⚠️ Bạn có chắc chắn muốn reset tất cả cài đặt về mặc định? (API key sẽ được giữ lại) Hành động này không thể hoàn tác!')) {
+            // Clear localStorage (except API key)
+            localStorage.removeItem('gemini_model');
+            localStorage.removeItem('custom_system_prompt');
+            
+            // Reset form values (keep API key)
+            this.modelSelect.value = 'gemini-1.5-flash';
+            this.customSystemPromptInput.value = '';
+            this.artStyleSelect.value = 'realistic';
+            this.detailLevelSelect.value = 'detailed';
+            this.aspectRatioSelect.value = '1:1';
+            this.numberOfPromptsSelect.value = '3';
+            this.negativePromptInput.value = '';
+            this.guidanceScaleInput.value = '7';
+            this.guidanceValueSpan.textContent = '7';
+            this.seedInput.value = '';
+            
+            // Reset to image tab
+            this.switchContentType('image');
+            
+            // Hide default prompt viewer
+            this.defaultPromptViewer.style.display = 'none';
+            this.showDefaultPromptBtn.textContent = '📝 Xem Prompt Mặc Định';
+            
+            alert('🔄 Đã reset tất cả cài đặt về mặc định! (API key được giữ lại)');
         }
     }
 
@@ -87,38 +255,25 @@ class PromptGenerator {
         const detailLevel = this.detailLevelSelect.value;
         const aspectRatio = this.aspectRatioSelect.value;
         const numberOfPrompts = parseInt(this.numberOfPromptsSelect.value);
+        const contentType = this.currentContentType;
         
         return {
             artStyle,
             detailLevel,
             aspectRatio,
-            numberOfPrompts
+            numberOfPrompts,
+            contentType
         };
     }
 
     buildSystemPrompt() {
-        return `Bạn là một chuyên gia tạo prompt cho AI Art (Stable Diffusion, Midjourney, DALL-E). 
-Nhiệm vụ của bạn là chuyển đổi ý tưởng đơn giản thành các prompt chi tiết, chuyên nghiệp.
+        const customPrompt = this.customSystemPromptInput.value.trim();
+        
+        if (customPrompt) {
+            return customPrompt;
+        }
 
-Quy tắc tạo prompt:
-1. Bắt đầu với chủ thể chính
-2. Thêm chi tiết về hành động, cảm xúc
-3. Mô tả môi trường, bối cảnh
-4. Chỉ định phong cách nghệ thuật
-5. Thêm thông số kỹ thuật (lighting, composition, quality)
-6. Kết thúc với negative prompt (những gì cần tránh)
-
-Định dạng trả về:
-**Prompt [số]:**
-[Mô tả chi tiết bằng tiếng Anh]
-
-**Mô tả tiếng Việt:**
-[Giải thích prompt bằng tiếng Việt để người dùng hiểu]
-
-**Negative Prompt:**
-[Những gì cần tránh bằng tiếng Anh]
-
----`;
+        return this.getDefaultSystemPrompt();
     }
 
     showError(message) {
@@ -166,8 +321,9 @@ Quy tắc tạo prompt:
             const userPrompt = this.buildUserPrompt(prompt, config);
             
             // Generate prompts using Gemini
+            const selectedModel = this.modelSelect.value;
             const response = await this.ai.models.generateContent({
-                model: 'gemini-1.5-flash',
+                model: selectedModel,
                 contents: [
                     { role: 'user', parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }
                 ],
@@ -190,16 +346,20 @@ Quy tắc tạo prompt:
 
     buildUserPrompt(userIdea, config) {
         const styleMap = {
-            'realistic': 'realistic, photorealistic',
-            'anime': 'anime style, manga style',
-            'cartoon': 'cartoon style, animated',
-            'oil-painting': 'oil painting, classical art',
-            'watercolor': 'watercolor painting, soft colors',
-            'digital-art': 'digital art, concept art',
-            'fantasy': 'fantasy art, magical',
-            'cyberpunk': 'cyberpunk style, neon, futuristic',
-            'minimalist': 'minimalist, simple, clean',
-            'vintage': 'vintage style, retro'
+            'realistic': 'realistic, photorealistic style',
+            'photography': 'professional photography with technical camera terms and lighting',
+            'cinematic': 'cinematic style with dramatic camera angles and movie-like composition',
+            'anime': 'anime style, manga style, Japanese animation',
+            'cartoon': 'cartoon style, animated, stylized illustration',
+            'oil-painting': 'oil painting, classical art, traditional painting techniques',
+            'watercolor': 'watercolor painting, soft colors, artistic brushwork',
+            'digital-art': 'digital art, concept art, modern digital techniques',
+            'fantasy': 'fantasy art, magical elements, mystical atmosphere',
+            'cyberpunk': 'cyberpunk style, neon lights, futuristic, sci-fi aesthetic',
+            'vintage': 'vintage style, retro aesthetic, nostalgic feeling',
+            'minimalist': 'minimalist, simple, clean composition, focused elements',
+            'commercial': 'commercial photography style, marketing-ready, professional presentation',
+            'technical': 'technical illustration, precise details, professional specifications'
         };
 
         const detailMap = {
@@ -209,13 +369,16 @@ Quy tắc tạo prompt:
             'ultra-detailed': 'ultra detailed with professional photography terms, specific art techniques, and quality modifiers'
         };
 
+        const contentTypeText = config.contentType === 'video' ? 'video' : 'hình ảnh';
+        
         return `Ý tưởng gốc: "${userIdea}"
+Loại nội dung: ${contentTypeText}
 Phong cách: ${styleMap[config.artStyle]}
 Mức độ chi tiết: ${detailMap[config.detailLevel]}
 Tỷ lệ khung hình: ${config.aspectRatio}
 Số lượng prompt cần tạo: ${config.numberOfPrompts}
 
-Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, mỗi prompt có góc nhìn và cách diễn đạt khác nhau nhưng cùng phong cách "${config.artStyle}".`;
+Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, mỗi prompt có cách diễn đạt khác nhau nhưng cùng phong cách "${config.artStyle}".`;
     }
 
     getErrorMessage(error) {

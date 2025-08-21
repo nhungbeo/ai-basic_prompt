@@ -9,8 +9,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>🎨 Tạo Mô Tả Hình Ảnh Chi Tiết</h1>
-            <p>Sử dụng Google Gemini AI miễn phí để tạo mô tả hình ảnh chi tiết cho AI Art</p>
+            <h1>🎨 Tạo Mô Tả Chi Tiết Cho AI</h1>
+            <p>Sử dụng Google Gemini AI miễn phí để tạo mô tả chi tiết cho AI Art và Video</p>
         </header>
 
         <main>
@@ -26,8 +26,16 @@
                     <small>Lấy API key tại <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a></small>
                 </div>
 
+                <div class="content-type-section">
+                    <label for="contentType">Loại nội dung:</label>
+                    <div class="content-type-tabs">
+                        <button type="button" class="tab-btn active" data-type="image">🖼️ Hình Ảnh</button>
+                        <button type="button" class="tab-btn" data-type="video">🎬 Video</button>
+                    </div>
+                </div>
+
                 <div class="prompt-section">
-                    <label for="prompt">Ý tưởng hình ảnh của bạn:</label>
+                    <label for="prompt" id="promptLabel">Ý tưởng hình ảnh của bạn:</label>
                     <textarea 
                         id="prompt" 
                         placeholder="Ví dụ: Một con mèo dễ thương đang ngồi trên cỏ xanh..."
@@ -36,18 +44,30 @@
                 </div>
 
                 <div class="style-section">
-                    <label for="artStyle">Phong cách nghệ thuật:</label>
+                    <label for="artStyle">Phong cách:</label>
                     <select id="artStyle">
-                        <option value="realistic">Thực tế</option>
-                        <option value="anime">Anime/Manga</option>
-                        <option value="cartoon">Cartoon</option>
-                        <option value="oil-painting">Sơn dầu</option>
-                        <option value="watercolor">Màu nước</option>
-                        <option value="digital-art">Digital Art</option>
-                        <option value="fantasy">Fantasy</option>
-                        <option value="cyberpunk">Cyberpunk</option>
-                        <option value="minimalist">Tối giản</option>
-                        <option value="vintage">Vintage</option>
+                        <optgroup label="📷 Realistic & Photography">
+                            <option value="realistic">📷 Realistic/Photo</option>
+                            <option value="photography">📸 Professional Photography</option>
+                            <option value="cinematic">🎬 Cinematic</option>
+                        </optgroup>
+                        <optgroup label="🎨 Art Styles">
+                            <option value="anime">🇯🇵 Anime/Manga</option>
+                            <option value="cartoon">🎭 Cartoon/Animation</option>
+                            <option value="oil-painting">🖌️ Oil Painting</option>
+                            <option value="watercolor">🎨 Watercolor</option>
+                            <option value="digital-art">💻 Digital Art</option>
+                        </optgroup>
+                        <optgroup label="🌟 Special Themes">
+                            <option value="fantasy">🐲 Fantasy Art</option>
+                            <option value="cyberpunk">🌆 Cyberpunk</option>
+                            <option value="vintage">📻 Vintage/Retro</option>
+                            <option value="minimalist">⚪ Minimalist</option>
+                        </optgroup>
+                        <optgroup label="💼 Commercial">
+                            <option value="commercial">💼 Commercial/Marketing</option>
+                            <option value="technical">⚙️ Technical/Professional</option>
+                        </optgroup>
                     </select>
                 </div>
 
@@ -89,6 +109,54 @@
                         <details>
                             <summary>Cài đặt nâng cao</summary>
                             <div class="advanced-options">
+                                <div class="config-item">
+                                    <label for="modelSelect">Model AI:</label>
+                                    <select id="modelSelect">
+                                        <optgroup label="🚀 Gemini 2.5 (Mới nhất)">
+                                            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Cân bằng tốt)</option>
+                                            <option value="gemini-2.5-flash-lite">Gemini 2.5 Flash-Lite (Siêu nhanh)</option>
+                                        </optgroup>
+                                        <optgroup label="⚡ Gemini 2.0">
+                                            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (Thử nghiệm)</option>
+                                        </optgroup>
+                                        <optgroup label="📚 Gemini 1.5">
+                                            <option value="gemini-1.5-flash" selected>Gemini 1.5 Flash (Nhanh)</option>
+                                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Chất lượng cao)</option>
+                                        </optgroup>
+                                        <optgroup label="🔧 Gemini 1.0">
+                                            <option value="gemini-1.0-pro">Gemini 1.0 Pro</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+
+                                <div class="config-item">
+                                    <label for="customSystemPrompt">System Prompt tùy chỉnh:</label>
+                                    <textarea 
+                                        id="customSystemPrompt" 
+                                        rows="4"
+                                        placeholder="Nhập system prompt tùy chỉnh hoặc để trống để sử dụng mặc định..."
+                                    ></textarea>
+                                    <div class="prompt-controls">
+                                        <button type="button" id="showDefaultPromptBtn" class="control-btn">📝 Xem Prompt Mặc Định</button>
+                                        <button type="button" id="useDefaultPromptBtn" class="control-btn">↩️ Sử Dụng Mặc Định</button>
+                                    </div>
+                                    <small>System prompt sẽ điều khiển cách AI tạo mô tả. Để trống để sử dụng prompt mặc định.</small>
+                                </div>
+
+                                <div class="config-item">
+                                    <div class="default-prompt-viewer" id="defaultPromptViewer" style="display: none;">
+                                        <label>Prompt mặc định hiện tại:</label>
+                                        <div class="default-prompt-content" id="defaultPromptContent"></div>
+                                        <button type="button" id="editDefaultPromptBtn" class="control-btn">✏️ Chỉnh Sửa Prompt Mặc Định</button>
+                                    </div>
+                                </div>
+
+                                <div class="config-item">
+                                    <div class="settings-controls">
+                                        <button type="button" id="resetSettingsBtn" class="reset-btn">🔄 Reset Tất Cả Cài Đặt</button>
+                                    </div>
+                                </div>
+
                                 <div class="config-item">
                                     <label for="negativePrompt">Mô tả loại trừ:</label>
                                     <input 
