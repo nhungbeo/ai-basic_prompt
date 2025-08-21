@@ -225,8 +225,57 @@
                         </div>
 
                         <div class="config-item">
+                            <label for="imageGenProvider">Provider tạo ảnh:</label>
+                            <select id="imageGenProvider">
+                                <option value="gemini">Gemini AI (Tích hợp sẵn)</option>
+                                <option value="imagen3">Imagen 3 (Chuyên nghiệp)</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="imageGenModel">Model cho tạo ảnh:</label>
+                            <select id="imageGenModel">
+                                <option value="gemini-1.5-pro">Gemini 1.5 Pro (Tốt nhất)</option>
+                                <option value="gemini-1.5-flash">Gemini 1.5 Flash (Nhanh)</option>
+                                <option value="gemini-2.0-flash-preview-image-generation">Gemini 2.0 Flash (Image Gen)</option>
+                                <option value="imagen-3.0-generate-002">Imagen 3 (Chất lượng cao nhất)</option>
+                                <option value="gemini-1.0-pro">Gemini 1.0 Pro (Ổn định)</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="imageGenStyle">Phong cách mặc định:</label>
+                            <select id="imageGenStyle">
+                                <option value="photorealistic">Photorealistic</option>
+                                <option value="artistic">Artistic</option>
+                                <option value="anime">Anime</option>
+                                <option value="cartoon">Cartoon</option>
+                                <option value="minimalist">Minimalist</option>
+                                <option value="fantasy">Fantasy</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label for="imageGenQuality">Chất lượng mặc định:</label>
+                            <select id="imageGenQuality">
+                                <option value="high">Cao</option>
+                                <option value="standard">Tiêu chuẩn</option>
+                                <option value="low">Thấp</option>
+                            </select>
+                        </div>
+
+                        <div class="config-item">
+                            <label>
+                                <input type="checkbox" id="autoGenerateImage" />
+                                Tự động tạo ảnh cho prompt đầu tiên
+                            </label>
+                        </div>
+                        
+                        <div class="config-item">
                             <div class="settings-controls">
                                 <button type="button" id="resetSettingsBtn" class="reset-btn">🔄 Reset Tất Cả Cài Đặt</button>
+                                <button type="button" id="imageGenSettingsBtn" class="settings-btn">🎨 Cài Đặt Tạo Hình Ảnh</button>
+                                <button type="button" id="testImageGenBtn" class="test-btn">🧪 Test Tạo Ảnh</button>
                             </div>
                         </div>
                     </div>

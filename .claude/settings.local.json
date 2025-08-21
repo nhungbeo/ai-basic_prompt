@@ -3,7 +3,9 @@
     "allow": [
       "WebSearch",
       "mcp__sequential-thinking-global__sequentialthinking",
-      "Bash(npm install)"
+      "Bash(npm install)",
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:www.tomsguide.com)"
     ],
     "deny": [],
     "ask": []

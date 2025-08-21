@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ImageGenerator } from './imageGenerator.js';
 
 // UI State Manager for tab switching and state management
 class UIStateManager {
@@ -215,6 +216,8 @@ class HistoryManager {
 class PromptGenerator {
     constructor() {
         this.ai = null;
+        this.imageGenerator = new ImageGenerator();
+        console.log('ImageGenerator initialized:', this.imageGenerator);
         this.currentContentType = 'image';
         this.initializeElements();
         this.bindEvents();
@@ -284,6 +287,14 @@ class PromptGenerator {
         this.videoAspectRatioSelect = document.getElementById('videoAspectRatio');
         this.videoLengthSelect = document.getElementById('videoLength');
         this.numberOfVideoPromptsSelect = document.getElementById('numberOfVideoPrompts');
+
+        // Image generation elements
+        this.imageGenProviderSelect = document.getElementById('imageGenProvider');
+        this.imageGenModelSelect = document.getElementById('imageGenModel');
+        this.imageGenStyleSelect = document.getElementById('imageGenStyle');
+        this.imageGenQualitySelect = document.getElementById('imageGenQuality');
+        this.autoGenerateImageCheckbox = document.getElementById('autoGenerateImage');
+        this.testImageGenBtn = document.getElementById('testImageGenBtn');
         
         // Status elements
         this.errorMessage = document.getElementById('errorMessage');
@@ -336,17 +347,162 @@ class PromptGenerator {
         this.videoModelSelect?.addEventListener('change', () => this.saveSettings());
         this.videoCustomSystemPromptInput?.addEventListener('change', () => this.saveSettings());
         
+        // Image generation settings events
+        this.bindImageGenerationEvents();
+
+        // Image generation settings button
+        const imageGenSettingsBtn = document.getElementById('imageGenSettingsBtn');
+        if (imageGenSettingsBtn) {
+            imageGenSettingsBtn.addEventListener('click', () => this.openImageGenerationSettings());
+        }
+        
         // Prompt control buttons
         this.showDefaultPromptBtn?.addEventListener('click', () => this.toggleDefaultPromptViewer());
         this.useDefaultPromptBtn?.addEventListener('click', () => this.useDefaultPrompt());
         this.editDefaultPromptBtn?.addEventListener('click', () => this.editDefaultPrompt());
         this.resetSettingsBtn?.addEventListener('click', () => this.resetAllSettings());
+        this.testImageGenBtn?.addEventListener('click', () => this.testImageGeneration());
         
         // Video prompt control buttons
         this.showVideoDefaultPromptBtn?.addEventListener('click', () => this.toggleVideoDefaultPromptViewer());
         this.useVideoDefaultPromptBtn?.addEventListener('click', () => this.useVideoDefaultPrompt());
         this.editVideoDefaultPromptBtn?.addEventListener('click', () => this.editVideoDefaultPrompt());
         this.editVideoPromptBtn?.addEventListener('click', () => this.editVideoDefaultPrompt());
+    }
+
+    bindImageGenerationEvents() {
+        // Image generation settings change events
+        this.imageGenModelSelect?.addEventListener('change', () => {
+            const selectedModel = this.imageGenModelSelect.value;
+            this.imageGenerator.setModel(selectedModel);
+            localStorage.setItem('image_gen_model', selectedModel);
+            this.showSuccessMessage('✅ Model tạo ảnh đã được cập nhật!');
+        });
+
+        this.imageGenStyleSelect?.addEventListener('change', () => {
+            localStorage.setItem('image_gen_style', this.imageGenStyleSelect.value);
+        });
+
+        this.imageGenQualitySelect?.addEventListener('change', () => {
+            localStorage.setItem('image_gen_quality', this.imageGenQualitySelect.value);
+        });
+
+        this.autoGenerateImageCheckbox?.addEventListener('change', () => {
+            localStorage.setItem('auto_generate_image', this.autoGenerateImageCheckbox.checked);
+        });
+    }
+
+    // Test image generation functionality
+    async testImageGeneration() {
+        try {
+            this.hideError();
+            
+            // Hiển thị loading
+            const testBtn = this.testImageGenBtn;
+            const originalText = testBtn.textContent;
+            testBtn.disabled = true;
+            testBtn.textContent = '🔄 Đang test...';
+
+            // Test với prompt đơn giản
+            const testPrompt = 'Một con mèo dễ thương đang ngồi trên cỏ xanh';
+            const options = {
+                style: this.imageGenStyleSelect?.value || 'photorealistic',
+                quality: this.imageGenQualitySelect?.value || 'standard',
+                aspectRatio: '1:1'
+            };
+
+            console.log('Testing image generation with:', { testPrompt, options });
+
+            const result = await this.imageGenerator.generateImage(testPrompt, options);
+
+            if (result.success) {
+                this.showSuccessMessage('🎉 Test tạo ảnh thành công! Kiểm tra kết quả ở tab Tạo Ảnh.');
+                
+                // Hiển thị kết quả test trong một modal nhỏ
+                this.showTestImageResult(result, testPrompt);
+            } else {
+                throw new Error(result.error || 'Không thể test tạo ảnh');
+            }
+
+        } catch (error) {
+            console.error('Test image generation error:', error);
+            this.showError(`❌ Test thất bại: ${error.message}`);
+        } finally {
+            // Reset button
+            const testBtn = this.testImageGenBtn;
+            testBtn.disabled = false;
+            testBtn.textContent = '🧪 Test Tạo Ảnh';
+        }
+    }
+
+    // Hiển thị kết quả test image
+    showTestImageResult(result, testPrompt) {
+        // Tạo modal để hiển thị kết quả test
+        const modal = document.createElement('div');
+        modal.className = 'test-result-modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🧪 Kết quả Test Tạo Ảnh</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.parentElement.remove()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Prompt test:</strong> "${testPrompt}"</p>
+                    <div class="test-image-results">
+                        ${result.images.map(image => `
+                            <div class="test-image-item">
+                                ${image.url ? `
+                                    <img src="${image.url}" alt="Test generated image" style="max-width: 100%; height: auto; border-radius: 8px;" />
+                                ` : ''}
+                                ${image.description ? `
+                                    <div class="test-description">
+                                        <strong>Mô tả:</strong> ${image.description}
+                                    </div>
+                                ` : ''}
+                                <div class="test-info">
+                                    <small>Method: ${image.method || 'unknown'} | Type: ${image.type}</small>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="test-actions">
+                        <button onclick="this.parentElement.parentElement.parentElement.parentElement.remove()" class="close-btn">Đóng</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Thêm styles cho modal
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+
+        modal.querySelector('.modal-content').style.cssText = `
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow-y: auto;
+        `;
+
+        document.body.appendChild(modal);
+
+        // Auto close after 10 seconds
+        setTimeout(() => {
+            if (modal.parentElement) {
+                modal.remove();
+            }
+        }, 10000);
     }
 
     bindStyleSelectionEvents() {
@@ -532,6 +688,27 @@ class PromptGenerator {
         const savedVideoSystemPrompt = localStorage.getItem('video_custom_system_prompt');
         if (savedVideoSystemPrompt && this.videoCustomSystemPromptInput) {
             this.videoCustomSystemPromptInput.value = savedVideoSystemPrompt;
+        }
+
+        // Load image generation settings
+        const savedImageModel = localStorage.getItem('image_gen_model');
+        if (savedImageModel && this.imageGenModelSelect) {
+            this.imageGenModelSelect.value = savedImageModel;
+        }
+
+        const savedImageStyle = localStorage.getItem('image_gen_style');
+        if (savedImageStyle && this.imageGenStyleSelect) {
+            this.imageGenStyleSelect.value = savedImageStyle;
+        }
+
+        const savedImageQuality = localStorage.getItem('image_gen_quality');
+        if (savedImageQuality && this.imageGenQualitySelect) {
+            this.imageGenQualitySelect.value = savedImageQuality;
+        }
+
+        const autoGenerateImage = localStorage.getItem('auto_generate_image');
+        if (this.autoGenerateImageCheckbox) {
+            this.autoGenerateImageCheckbox.checked = autoGenerateImage === 'true';
         }
     }
 
@@ -1113,6 +1290,11 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
                 <button class="copy-all-btn" data-prompt-index="${index}">
                     📄 Sao chép Tất cả
                 </button>
+                ${contentType === 'image' ? `
+                    <button class="generate-image-btn" data-prompt-index="${index}" data-prompt="${promptData.prompt.replace(/"/g, '&quot;')}">
+                        🎨 Tạo Ảnh
+                    </button>
+                ` : ''}
             </div>
         `;
         
@@ -1122,6 +1304,7 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
         const copyBtn = promptItem.querySelector('.copy-prompt-btn');
         const copyNegativeBtn = promptItem.querySelector('.copy-negative-btn');
         const copyAllBtn = promptItem.querySelector('.copy-all-btn');
+        const generateImageBtn = promptItem.querySelector('.generate-image-btn');
         
         copyBtn.addEventListener('click', () => this.copyPrompt(promptData.prompt));
         
@@ -1130,6 +1313,10 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
         }
         
         copyAllBtn.addEventListener('click', () => this.copyAllPrompts(promptData));
+        
+        if (generateImageBtn) {
+            generateImageBtn.addEventListener('click', () => this.generateImageFromPrompt(promptData.prompt, promptItem, config));
+        }
     }
 
     async copyPrompt(promptText) {
@@ -1193,15 +1380,472 @@ Hãy tạo ${config.numberOfPrompts} prompt khác nhau cho ý tưởng này, m�
         const successDiv = document.createElement('div');
         successDiv.className = 'success-message';
         successDiv.textContent = message;
-        
+
         this.errorMessage.parentNode.insertBefore(successDiv, this.errorMessage);
-        
+
         // Auto hide after 3 seconds
         setTimeout(() => {
             if (successDiv.parentNode) {
                 successDiv.remove();
             }
         }, 3000);
+    }
+
+    // Generate image from prompt using Gemini API
+    async generateImageFromPrompt(prompt, promptItem, config) {
+        try {
+            this.hideError();
+
+            if (!prompt || prompt.trim() === '') {
+                throw new Error('Prompt trống, không thể tạo ảnh.');
+            }
+
+            // Hiển thị loading cho prompt item này
+            this.showImageGenerationLoading(promptItem);
+
+            // Tạo options từ config
+            const options = {
+                style: this.getStyleFromConfig(config.artStyle),
+                quality: config.detailLevel || 'high',
+                aspectRatio: config.aspectRatio || '1:1'
+            };
+
+            console.log('Generating image with options:', options);
+
+            // Gọi ImageGenerator để tạo ảnh
+            const result = await this.imageGenerator.generateImage(prompt, options);
+
+            if (!result.success) {
+                throw new Error(result.error || 'Không thể tạo hình ảnh');
+            }
+
+            // Hiển thị kết quả
+            this.displayGeneratedImageInPrompt(result, promptItem, prompt);
+            
+            this.showSuccessMessage('🎨 Ảnh đã được tạo thành công!');
+
+        } catch (error) {
+            console.error('Image generation error:', error);
+            this.showError(error.message || 'Đã xảy ra lỗi khi tạo ảnh');
+        } finally {
+            this.hideImageGenerationLoading();
+        }
+    }
+
+    // Map config style to ImageGenerator style
+    getStyleFromConfig(artStyle) {
+        const styleMap = {
+            'realistic': 'photorealistic',
+            'anime': 'anime',
+            'digital-art': 'artistic',
+            'fantasy': 'fantasy',
+            'cinematic': 'artistic',
+            'minimalist': 'minimalist'
+        };
+        
+        return styleMap[artStyle] || 'photorealistic';
+    }
+
+    // Hiển thị ảnh được tạo trong prompt item
+    displayGeneratedImageInPrompt(result, promptItem, originalPrompt) {
+        // Xóa ảnh cũ nếu có
+        const existingImage = promptItem.querySelector('.generated-image-display');
+        if (existingImage) {
+            existingImage.remove();
+        }
+
+        // Tạo container cho ảnh
+        const imageDisplay = document.createElement('div');
+        imageDisplay.className = 'generated-image-display';
+
+        if (result.images && result.images.length > 0) {
+            const image = result.images[0];
+            
+            let imageHTML = '';
+            
+            if (image.type === 'svg') {
+                imageHTML = `
+                    <div class="generated-image-header">
+                        <h4>🎨 Ảnh được tạo (SVG)</h4>
+                        <span class="image-method">Method: ${image.method || 'svg_generation'}</span>
+                    </div>
+                    <div class="generated-image-container">
+                        <img src="${image.url}" alt="Generated SVG image" class="generated-image" />
+                    </div>
+                `;
+            } else if (image.type === 'text') {
+                imageHTML = `
+                    <div class="generated-image-header">
+                        <h4>📝 Mô tả ảnh chi tiết</h4>
+                        <span class="image-method">Method: text_description</span>
+                    </div>
+                    <div class="generated-text-content">
+                        <p>${image.description}</p>
+                    </div>
+                `;
+            } else if (image.url) {
+                imageHTML = `
+                    <div class="generated-image-header">
+                        <h4>🎨 Ảnh được tạo</h4>
+                        <span class="image-method">Method: ${image.method || 'gemini_api'}</span>
+                    </div>
+                    <div class="generated-image-container">
+                        <img src="${image.url}" alt="Generated image" class="generated-image" />
+                    </div>
+                `;
+            }
+
+            // Thêm action buttons
+            imageHTML += `
+                <div class="generated-image-actions">
+                    ${image.url ? `
+                        <button class="download-image-btn" onclick="promptApp.downloadGeneratedImage('${image.url}', 'generated-${Date.now()}')">
+                            💾 Tải xuống
+                        </button>
+                        <button class="copy-image-url-btn" onclick="promptApp.copyImageUrl('${image.url}')">
+                            📋 Copy URL
+                        </button>
+                    ` : ''}
+                    <button class="regenerate-image-btn" onclick="promptApp.regenerateImage('${originalPrompt.replace(/'/g, "\\'")}', this)">
+                        🔄 Tạo lại
+                    </button>
+                </div>
+            `;
+
+            imageDisplay.innerHTML = imageHTML;
+        } else {
+            imageDisplay.innerHTML = `
+                <div class="generated-image-header">
+                    <h4>❌ Không thể tạo ảnh</h4>
+                </div>
+                <div class="error-content">
+                    <p>Gemini API hiện tại có thể không hỗ trợ tạo ảnh trực tiếp. Vui lòng thử lại sau.</p>
+                </div>
+            `;
+        }
+
+        // Thêm vào prompt item
+        promptItem.appendChild(imageDisplay);
+
+        // Scroll to image
+        imageDisplay.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Regenerate image
+    async regenerateImage(originalPrompt, buttonElement) {
+        const promptItem = buttonElement.closest('.prompt-item');
+        const config = {
+            artStyle: 'realistic',
+            aspectRatio: '1:1',
+            detailLevel: 'high'
+        };
+        
+        await this.generateImageFromPrompt(originalPrompt, promptItem, config);
+    }
+
+    // Image Generation Methods
+    async generateActualImage(promptIndex = 0) {
+        try {
+            this.hideError();
+
+            // Get the prompt from the results
+            const promptItems = this.imageResults.querySelectorAll('.prompt-item');
+            if (promptItems.length === 0) {
+                throw new Error('Không có prompt nào để tạo hình ảnh. Vui lòng tạo prompt trước.');
+            }
+
+            const selectedPromptItem = promptItems[promptIndex];
+            if (!selectedPromptItem) {
+                throw new Error('Không tìm thấy prompt được chọn.');
+            }
+
+            const promptContent = selectedPromptItem.querySelector('.prompt-content');
+            if (!promptContent) {
+                throw new Error('Không thể lấy nội dung prompt.');
+            }
+
+            const prompt = promptContent.textContent.trim();
+            if (!prompt) {
+                throw new Error('Prompt trống, không thể tạo hình ảnh.');
+            }
+
+            // Show loading for image generation
+            this.showImageGenerationLoading(selectedPromptItem);
+
+            // Generate image using the ImageGenerator
+            const result = await this.imageGenerator.generateImage(prompt, {
+                provider: this.imageGenerator.currentModel,
+                size: '1024x1024',
+                quality: 'standard'
+            });
+
+            if (!result.success || result.images.length === 0) {
+                throw new Error('Không thể tạo hình ảnh. Vui lòng thử lại.');
+            }
+
+            // Display the generated image
+            this.displayGeneratedImage(result.images[0], selectedPromptItem, prompt);
+
+            // Show success message
+            this.showSuccessMessage('🎨 Hình ảnh đã được tạo thành công!');
+
+        } catch (error) {
+            console.error('Image generation error:', error);
+            this.showError(this.parseImageGenerationError(error));
+        } finally {
+            // Hide loading
+            this.hideImageGenerationLoading();
+        }
+    }
+
+    showImageGenerationLoading(promptItem) {
+        // Add loading indicator to the prompt item
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'image-generation-loading';
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <p>Đang tạo hình ảnh...</p>
+        `;
+
+        promptItem.appendChild(loadingDiv);
+    }
+
+    hideImageGenerationLoading() {
+        const loadingDivs = document.querySelectorAll('.image-generation-loading');
+        loadingDivs.forEach(div => div.remove());
+    }
+
+    displayGeneratedImage(imageData, promptItem, originalPrompt) {
+        // Create image display element
+        const imageDisplay = document.createElement('div');
+        imageDisplay.className = 'generated-image-display';
+
+        imageDisplay.innerHTML = `
+            <div class="generated-image-header">
+                <h4>🎨 Hình ảnh đã tạo</h4>
+                <span class="image-provider">Provider: ${imageData.provider || 'Unknown'}</span>
+            </div>
+            <div class="generated-image-container">
+                <img src="${imageData.url}" alt="Generated image" class="generated-image" />
+            </div>
+            <div class="generated-image-actions">
+                <button class="download-image-btn" onclick="promptApp.downloadGeneratedImage('${imageData.url}', '${originalPrompt.substring(0, 30).replace(/'/g, "\\'")}...')">
+                    💾 Tải xuống
+                </button>
+                <button class="copy-image-url-btn" onclick="promptApp.copyImageUrl('${imageData.url}')">
+                    📋 Sao chép URL
+                </button>
+                <button class="generate-new-image-btn" onclick="promptApp.generateNewVariation('${originalPrompt.replace(/'/g, "\\'")}')">
+                    🔄 Tạo biến thể mới
+                </button>
+            </div>
+        `;
+
+        promptItem.appendChild(imageDisplay);
+    }
+
+    async downloadGeneratedImage(imageUrl, filename) {
+        try {
+            await this.imageGenerator.downloadImage(imageUrl, filename);
+            this.showSuccessMessage('✅ Hình ảnh đã được tải xuống!');
+        } catch (error) {
+            console.error('Download error:', error);
+            this.showError('Không thể tải xuống hình ảnh. Vui lòng thử lại.');
+        }
+    }
+
+    async copyImageUrl(imageUrl) {
+        try {
+            await navigator.clipboard.writeText(imageUrl);
+            this.showSuccessMessage('📋 URL hình ảnh đã được sao chép!');
+        } catch (error) {
+            console.error('Copy URL error:', error);
+            this.showError('Không thể sao chép URL. Vui lòng thử lại.');
+        }
+    }
+
+    // Show loading for image generation
+    showImageGenerationLoading(promptItem) {
+        // Remove existing loading if any
+        this.hideImageGenerationLoading();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'image-generation-loading';
+        loadingDiv.id = 'imageGenLoading';
+        loadingDiv.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">🎨 Đang tạo ảnh với Gemini AI...</div>
+            <div class="loading-subtext">Vui lòng đợi một chút...</div>
+        `;
+        
+        promptItem.appendChild(loadingDiv);
+        
+        // Scroll to loading
+        loadingDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Hide loading for image generation
+    hideImageGenerationLoading() {
+        const existing = document.getElementById('imageGenLoading');
+        if (existing) {
+            existing.remove();
+        }
+    }
+
+    async generateNewVariation(originalPrompt) {
+        try {
+            // Add some variation to the prompt
+            const variedPrompt = `${originalPrompt}, different composition, new perspective, unique style`;
+
+            const result = await this.imageGenerator.generateImage(variedPrompt, {
+                provider: this.imageGenerator.currentModel,
+                size: '1024x1024',
+                quality: 'standard'
+            });
+
+            if (result.success && result.images.length > 0) {
+                // Find the parent prompt item and add the new image
+                const promptItems = this.imageResults.querySelectorAll('.prompt-item');
+                const lastItem = promptItems[promptItems.length - 1];
+
+                this.displayGeneratedImage(result.images[0], lastItem, variedPrompt);
+                this.showSuccessMessage('🎨 Biến thể mới đã được tạo!');
+            }
+        } catch (error) {
+            console.error('Variation generation error:', error);
+            this.showError('Không thể tạo biến thể mới. Vui lòng thử lại.');
+        }
+    }
+
+    parseImageGenerationError(error) {
+        if (error.message.includes('API key')) {
+            return 'API key không hợp lệ. Vui lòng kiểm tra lại API key của bạn trong phần cài đặt.';
+        }
+
+        if (error.message.includes('quota') || error.message.includes('429')) {
+            return 'Bạn đã vượt quá giới hạn sử dụng API. Vui lòng thử lại sau hoặc nâng cấp tài khoản.';
+        }
+
+        if (error.message.includes('network')) {
+            return 'Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet và thử lại.';
+        }
+
+        return error.message || 'Đã xảy ra lỗi khi tạo hình ảnh. Vui lòng thử lại.';
+    }
+
+    // Initialize image generation UI elements
+    initializeImageGenerationUI() {
+        // Add image generation button to each prompt item
+        const promptItems = this.imageResults.querySelectorAll('.prompt-item');
+        promptItems.forEach((item, index) => {
+            const actionsDiv = item.querySelector('.prompt-actions');
+            if (actionsDiv && !actionsDiv.querySelector('.generate-image-btn')) {
+                const generateImageBtn = document.createElement('button');
+                generateImageBtn.className = 'generate-image-btn';
+                generateImageBtn.textContent = '🎨 Tạo hình ảnh';
+                generateImageBtn.onclick = () => this.generateActualImage(index);
+                actionsDiv.appendChild(generateImageBtn);
+            }
+        });
+    }
+
+    // Settings for image generation
+    openImageGenerationSettings() {
+        // Create a modal for Gemini image generation settings
+        const settingsModal = document.createElement('div');
+        settingsModal.className = 'image-gen-settings-modal';
+        settingsModal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>⚙️ Cài đặt tạo hình ảnh với Gemini</h3>
+                    <button class="close-modal" onclick="this.parentElement.parentElement.remove()">✕</button>
+                </div>
+                <div class="modal-body">
+                    <div class="setting-group">
+                        <label for="geminiModel">Model Gemini:</label>
+                        <select id="geminiModel">
+                            <option value="gemini-2.5-flash-exp">Gemini 2.5 Flash (Experimental)</option>
+                            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Đáng tin cậy)</option>
+                            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Nhanh)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="imageStyle">Phong cách hình ảnh:</label>
+                        <select id="imageStyle">
+                            <option value="photorealistic">Photorealistic (Chân thực)</option>
+                            <option value="artistic">Artistic (Nghệ thuật)</option>
+                            <option value="anime">Anime Style</option>
+                            <option value="cartoon">Cartoon</option>
+                            <option value="minimalist">Minimalist (Tối giản)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <label for="imageQuality">Chất lượng:</label>
+                        <select id="imageQuality">
+                            <option value="high">Cao</option>
+                            <option value="standard">Tiêu chuẩn</option>
+                            <option value="low">Thấp (Nhanh hơn)</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-group">
+                        <div class="info-box">
+                            <strong>📝 Lưu ý:</strong><br>
+                            - Gemini tạo hình ảnh thông qua tích hợp với các dịch vụ khác<br>
+                            - Sử dụng API key Gemini hiện tại của bạn<br>
+                            - Hình ảnh sẽ được tạo với chất lượng cao nhất có thể
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
+                        <button id="saveImageGenSettings" class="save-btn">💾 Lưu cài đặt</button>
+                        <button id="testImageGen" class="validate-btn">🧪 Test tạo hình ảnh</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(settingsModal);
+
+        // Load current settings
+        const modelSelect = settingsModal.querySelector('#geminiModel');
+        const styleSelect = settingsModal.querySelector('#imageStyle');
+        const qualitySelect = settingsModal.querySelector('#imageQuality');
+
+        // Load saved preferences
+        modelSelect.value = localStorage.getItem('image_gen_model') || 'gemini-1.5-pro';
+        styleSelect.value = localStorage.getItem('image_style') || 'photorealistic';
+        qualitySelect.value = localStorage.getItem('image_quality') || 'high';
+
+        // Bind events
+        const saveBtn = settingsModal.querySelector('#saveImageGenSettings');
+        const testBtn = settingsModal.querySelector('#testImageGen');
+
+        saveBtn.addEventListener('click', () => {
+            localStorage.setItem('image_gen_model', modelSelect.value);
+            localStorage.setItem('image_style', styleSelect.value);
+            localStorage.setItem('image_quality', qualitySelect.value);
+            this.imageGenerator.setModel(modelSelect.value);
+            this.showSuccessMessage('✅ Cài đặt đã được lưu!');
+        });
+
+        testBtn.addEventListener('click', async () => {
+            try {
+                const testPrompt = "Tạo một hình ảnh đơn giản để test chức năng";
+                const result = await this.imageGenerator.generateImage(testPrompt, {
+                    style: styleSelect.value,
+                    quality: qualitySelect.value
+                });
+
+                if (result.success) {
+                    alert('✅ Test thành công! Hình ảnh đã được tạo.');
+                }
+            } catch (error) {
+                alert('❌ Test thất bại: ' + error.message);
+            }
+        });
     }
 }
 
