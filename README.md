@@ -135,6 +135,31 @@ npm run build    # Build cho production
 npm run preview  # Preview build locally
 ```
 
+## 🌐 Deployment GitHub Pages
+
+Dự án được cấu hình tự động deploy lên GitHub Pages.
+
+### Cách thức hoạt động
+- GitHub Actions tự động build và deploy khi push lên branch `main`
+- App sẽ có thể truy cập tại: `https://[username].github.io/ai-basic_prompt/`
+
+### Yêu cầu setup
+1. **Enable GitHub Pages trong repository settings**:
+   - Vào `Settings` > `Pages`
+   - Chọn `Source`: GitHub Actions
+   - Workflow sẽ tự động chạy
+
+2. **Permissions**: Đảm bảo GitHub Actions có quyền deploy
+   - Vào `Settings` > `Actions` > `General`
+   - Chọn `Read and write permissions`
+
+### Manual deployment
+Nếu muốn deploy thủ công:
+```bash
+npm run build          # Build production
+# Sau đó push nội dung thư mục dist/ lên branch gh-pages
+```
+
 ## 🚨 Lưu ý quan trọng
 
 - **API Key**: Không chia sẻ API key với người khác
