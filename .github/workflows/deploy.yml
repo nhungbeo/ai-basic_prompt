@@ -36,9 +36,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: |
-          sed -i "s|base: './',|base: '/ai-basic_prompt/',|g" vite.config.js
-          npm run build
+        run: npm run build
         env:
           NODE_ENV: production
 
